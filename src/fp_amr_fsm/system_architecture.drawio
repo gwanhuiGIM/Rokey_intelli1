@@ -1,0 +1,190 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.5 Chrome/138.0.7204.251 Electron/37.6.1 Safari/537.36" version="28.2.5">
+  <diagram name="fp_amr_fsm System Architecture" id="fp-amr-fsm-arch">
+    <mxGraphModel dx="1594" dy="962" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="fp_amr_fsm — System Design Architecture (TurtleBot4 AMR 관제 FSM)" style="text;html=1;fontSize=20;fontStyle=1;align=center;" parent="1" vertex="1">
+          <mxGeometry x="380" y="10" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pc3" value="PC3 — 감지 시스템 (detection_final)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=14;container=1;collapsible=0;" parent="1" vertex="1">
+          <mxGeometry x="40" y="300" width="300" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="det" value="detection_final&#xa;(12_dual_camera_entry_yolo_tracking_modular.py)&#xa;&#xa;웹캠 2대 YOLO 감지&#xa;쓰러짐 / 헬멧 미착용 / 무단침입" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" parent="pc3" vertex="1">
+          <mxGeometry x="20" y="50" width="260" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="manual" value="시연/디버깅 수동 주입 (터미널)&#xa;ros2 topic pub /alert/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="60" y="640" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pc4" value="PC4 — fp_amr_fsm (관제)" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontStyle=1;fontSize=14;container=1;collapsible=0;" parent="1" vertex="1">
+          <mxGeometry x="440" y="70" width="680" height="960" as="geometry" />
+        </mxCell>
+        <mxCell id="bridge" value="safety_alert_bridge 노드&#xa;&#xa;PC3 /safety/* → /alert/* 변환&#xa;PoseStamped → String JSON&#xa;helmet: 에피소드당 첫 goal 1회만 중계" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;fontStyle=1" parent="pc4" vertex="1">
+          <mxGeometry x="40" y="50" width="290" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="fleet" value="fleet_fsm 노드 — 관제 FSM (판단/배정)" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;verticalAlign=top;fontStyle=1;fontSize=13;container=1;collapsible=0;" parent="pc4" vertex="1">
+          <mxGeometry x="40" y="240" width="600" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="f_diag" value="로봇 상태 진단&#xa;raw 토픽 직접 구독 판단&#xa;OFFLINE / NO_LOCALIZATION / NO_NAV2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5e1;strokeColor=#82b366;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="20" y="40" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="f_dispatch" value="출동 배정&#xa;EMERGENCY 최우선(HELMET 선점 허용)&#xa;최단거리 선정, abort 시 최대 3회 재배정" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5e1;strokeColor=#82b366;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="310" y="40" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="f_patrol" value="자동 순찰 / 교대&#xa;patrol_period(300s)마다 배터리 최고 idle 배정&#xa;PATROL→RETURNING 전이 시 순찰 재배정" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5e1;strokeColor=#82b366;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="20" y="150" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="f_batt" value="배터리 히스테리시스&#xa;low 0.30 / dispatch_min 0.40 / resume 0.90&#xa;복귀 직후 재배정 핑퐁 방지" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5e1;strokeColor=#82b366;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="310" y="150" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="f_ctx" value="robot_context.py&#xa;로봇 1대 상태(RobotContext)&#xa;공용 상수 / QoS 정의" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#82b366;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="20" y="260" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f_map" value="map_view.py&#xa;지도 로드 + OpenCV 관제 화면 (표시 전용)&#xa;headless(SSH) 시 자동 비활성" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#82b366;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="310" y="260" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f_status" value="/fleet/status 발행&#xa;관제 전체 상태 JSON, 1Hz&#xa;+ 터미널 상태 테이블(5s)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" parent="fleet" vertex="1">
+          <mxGeometry x="165" y="370" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rosbridge" value="rosbridge_server&#xa;ws://localhost:9090" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" parent="pc4" vertex="1">
+          <mxGeometry x="40" y="790" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="web" value="web/fleet_monitor.html&#xa;브라우저 대시보드&#xa;지도(map.png) · 로봇 상태 · 큐 표시" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" parent="pc4" vertex="1">
+          <mxGeometry x="370" y="780" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="hZnOuc-e-x9sjwK1kmQE-1" value="&lt;u&gt;&lt;b&gt;시작&lt;/b&gt;&lt;/u&gt; - 배터리 가장 높은 로봇에 순찰 부여.&lt;div&gt;이후 주기=300초마다 순찰 배정&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5e1;strokeColor=#82b366;fontSize=10;" vertex="1" parent="pc4">
+          <mxGeometry x="380" y="70" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="robots" value="로봇 — robot2 / robot6 (네임스페이스 필수, __ns:=/robotN)" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;fontStyle=1;fontSize=14;container=1;collapsible=0;" parent="1" vertex="1">
+          <mxGeometry x="1240" y="200" width="370" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="amr" value="amr_patrol_emer_helmet 노드&#xa;(amr_aruco 패키지, 로봇에서 실행)&#xa;&#xa;순찰 waypoint 주행&#xa;위급 출동 (순찰 즉시 선점)&#xa;안전모 배달 (idle에서만)&#xa;배터리 &lt; 30% → 순찰 중단, 자체 도킹 복귀" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;fontStyle=1" parent="robots" vertex="1">
+          <mxGeometry x="35" y="50" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="raw" value="표준 raw 상태 토픽 (로봇 시스템 발행)&#xa;&#xa;/{robot}/dock_status&#xa;/{robot}/battery_state&#xa;/{robot}/amcl_pose&#xa;/{robot}/navigate_to_pose/_action/status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ec;strokeColor=#d79b00;fontSize=11;" parent="robots" vertex="1">
+          <mxGeometry x="35" y="280" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="nav2" value="Nav2 / TurtleBot4 브링업&#xa;(별도 launch, 선행 실행)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#d79b00;dashed=1;fontSize=10;" parent="robots" vertex="1">
+          <mxGeometry x="35" y="460" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="/safety/emergency_goal · /safety/helmet_goal (PoseStamped)&#xa;/safety/emergency_state · /safety/helmet_state (String)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="det" target="bridge" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="320" />
+              <mxPoint x="625" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="/alert/emergency · /alert/helmet&#xa;/alert/emergency_clear · /alert/helmet_clear&#xa;(String JSON)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="bridge" target="fleet" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="/alert/patrol 등 /alert/* (String JSON)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;dashed=1;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="manual" target="fleet" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="/{robot}/emergency_goal · helmet_goal · patrol_cmd (String JSON)&#xa;/{robot}/emergency_clear · helmet_clear (Bool)&#xa;QoS: RELIABLE + TRANSIENT_LOCAL, depth 1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" parent="1" source="fleet" target="amr" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1150" y="430" />
+              <mxPoint x="1150" y="313" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="/{robot}/amr_status (String, latched)&#xa;IDLE / PATROL / EMERGENCY / HELMET / RETURNING" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;exitX=0;exitY=0.65;exitDx=0;exitDy=0;entryX=1;entryY=0.55;entryDx=0;entryDy=0;" parent="1" source="amr" target="fleet" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1190" y="367" />
+              <mxPoint x="1190" y="574" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="표준 raw 토픽 직접 구독&#xa;(dock_status · battery_state · amcl_pose · nav2 action status)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="raw" target="fleet" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="555" />
+              <mxPoint x="1210" y="670" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" value="/fleet/status (String JSON, 1Hz)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="fleet" target="rosbridge" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="WebSocket" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="rosbridge" target="web" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="NavigateToPose 액션" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d79b00;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="nav2" target="raw" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="범례" style="rounded=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;container=1;collapsible=0;" parent="1" vertex="1">
+          <mxGeometry x="40" y="790" width="330" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="감지 이벤트 (/safety/*)" style="text;html=1;fontSize=10;strokeColor=#6c8ebf;fillColor=none;align=left;spacingLeft=30;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="30" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1l" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="legend" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="40" as="sourcePoint" />
+            <mxPoint x="34" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg2" value="관제 명령 입력 (/alert/*)" style="text;html=1;fontSize=10;align=left;spacingLeft=30;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="60" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2l" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;" parent="legend" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="70" as="sourcePoint" />
+            <mxPoint x="34" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg3" value="로봇 명령 (/{robot}/*, latched QoS)" style="text;html=1;fontSize=10;align=left;spacingLeft=30;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="90" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3l" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" parent="legend" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="100" as="sourcePoint" />
+            <mxPoint x="34" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg4" value="로봇 → 관제 상태 피드백" style="text;html=1;fontSize=10;align=left;spacingLeft=30;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="120" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4l" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" parent="legend" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="130" as="sourcePoint" />
+            <mxPoint x="34" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg5" value="모니터링 (/fleet/status)" style="text;html=1;fontSize=10;align=left;spacingLeft=30;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="150" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5l" style="endArrow=classic;html=1;strokeColor=#d6b656;strokeWidth=2;" parent="legend" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="160" as="sourcePoint" />
+            <mxPoint x="34" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg6" value="보조/수동 경로 (점선)" style="text;html=1;fontSize=10;align=left;spacingLeft=30;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="180" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6l" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;dashed=1;" parent="legend" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="190" as="sourcePoint" />
+            <mxPoint x="34" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg7" value="■ 초록 박스 = fleet_fsm 내부 기능 단위" style="text;html=1;fontSize=10;align=left;spacingLeft=8;" parent="legend" vertex="1">
+          <mxGeometry x="10" y="205" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="hZnOuc-e-x9sjwK1kmQE-2" value="/{robot}/emergency_goal · helmet_goal · patrol_cmd (String JSON)&#xa;/{robot}/emergency_clear · helmet_clear (Bool)&#xa;QoS: RELIABLE + TRANSIENT_LOCAL, depth 1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="hZnOuc-e-x9sjwK1kmQE-1" target="amr">
+          <mxGeometry y="-5" relative="1" as="geometry">
+            <mxPoint x="750" y="267" as="sourcePoint" />
+            <mxPoint x="945" y="150" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1425" y="140" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

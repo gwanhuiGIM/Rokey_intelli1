@@ -1,0 +1,32 @@
+# fleet_fsm 파라미터 (ros2 launch fp_amr_fsm fleet.launch.py params_file:=...)
+fleet_fsm_node:
+  ros__parameters:
+    # 관제 대상 로봇 네임스페이스. 로봇 구동 노드 실행 시 __ns 와 일치해야 함.
+    robots: ['robot2', 'robot6']
+
+    # 지도 파일 (nav2 map_server 와 동일한 pgm+yaml 쌍).
+    # 빈 문자열이면 패키지 share/maps/final_project.* 사용.
+    map_pgm: ''
+    map_yaml: ''
+    viz_scale: 6        # 지도 확대 배율 (128x118 -> 768x708)
+    panel_w: 400        # 우측 상태 패널 폭(px)
+
+    # battery_low 는 로봇 구동 노드(amr_patrol_emer_helmet.py)의
+    # BATTERY_LOW_THRESHOLD(0.30)와 반드시 일치해야 한다. 과거 0.25 로 두었을
+    # 때 로봇은 30% 미만이면 자체 복귀하는데 fleet 은 25% 까지 정상으로 봐서,
+    # 31% 로봇에게 순찰을 배정하면 29% 에서 곧바로 복귀하는 핑퐁이 발생했다.
+    battery_low: 0.30
+    battery_resume: 0.90
+    # 출동/순찰 배정 가능 최소 배터리 (히스테리시스). 로봇 자체 복귀
+    # 임계값(30%)보다 여유 있게 높아야, 복귀 직후 살짝 충전된 로봇이
+    # 배정 → 즉시 재복귀를 반복하는 것을 막는다.
+    battery_dispatch_min: 0.40
+
+    offline_timeout: 5.0        # 하트비트 단절 -> OFFLINE 판정 시간(초)
+    max_dispatch_attempts: 3    # 출동 실패(abort 등) 시 재배정 상한
+    tick_period: 1.0            # FSM 판단 주기(초)
+    table_log_period: 5.0       # 터미널 상태 테이블 출력 주기(초)
+
+    # 자동 순찰 주기(초). 이 주기마다 idle 로봇에게 순찰을 자동 배정한다.
+    # 0 이하로 두면 자동 순찰 비활성 (/alert/patrol 수동 주입만 동작).
+    patrol_period: 300.0

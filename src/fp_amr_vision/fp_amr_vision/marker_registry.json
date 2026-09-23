@@ -1,0 +1,12 @@
+{
+  "42": {
+    "name": "3층 동측 소화전",
+    "type": "extinguisher",
+    "zone": "Z3"
+  },
+  "1": {
+    "name": "3층 동측 소화전",
+    "type": "extinguisher",
+    "zone": "Z3"
+  }
+}
