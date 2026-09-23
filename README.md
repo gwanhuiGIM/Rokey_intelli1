@@ -235,3 +235,10 @@ payload 의 `timestamp` 로 30초 이상 지난 명령은 로봇이 버린다.
 빌드 산출물(`build/`, `install/`, `log/`, `*.egg-info`), 캐시(`__pycache__`, `*.pyc`),
 백업(`*.bak`), 학습 데이터셋, 실험용 모델 가중치, 런타임 산출물(스냅샷 이미지, 로그).
 **실행에 필요한 모델·캘리브레이션·맵은 모두 포함**했다.
+
+---
+
+## License
+
+별도 license를 부여하지 않는다 (All rights reserved). 팀 프로젝트 결과물을 포트폴리오로 열람할 수 있게 공개한 것이다.
+`src/turtlebot4*`, `src/m-explore-ros2`는 upstream 코드이며 각 디렉터리의 `LICENSE`(Apache-2.0 / BSD)를 따른다.
