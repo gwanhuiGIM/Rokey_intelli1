@@ -273,6 +273,38 @@ cd src/1_vision_pc3 && python3 12_dual_camera_entry_yolo_tracking_modular.py --c
 | `4_docs/RUN_PC3.md`, `PC4_SETUP.md`, `FOR_AMR_TEAM.md` | PC별 실행 절차 (원래 실행 PC 경로 기준) | 참고 이력 |
 | `src/fp_amr_fsm/README.md` | 리팩터 시도판 설명 (robot2·robot6) | 참고 이력 |
 
+<a id="contribution"></a>
+## 프로젝트 요약 · 본인 담당 (김관희)
+
+> 포트폴리오용 프로젝트 요약입니다. 이 저장소의 코드는 팀 최종 제출본이고, 제 역할 범위는 **본인 담당** 행에 적었습니다. 접힌 '프로젝트 기술 전체'는 팀 전체 시스템 설명입니다. 다른 프로젝트: [github.com/gwanhuiGIM](https://github.com/gwanhuiGIM)
+
+**모사한 산업 현장을 순찰하다가, 관제 웹캠이 안전모 미착용·작업자 쓰러짐을 감지하면 출동 가능한 AMR을 보내 조치하는 시스템을 구현하였습니다.**<br>
+이 과정에서 에러 메시지 없이 로봇을 헛걸음시킬 수 있던 신호 흔들림을 단계별로 쪼개 잡았습니다.
+
+▶️ [1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)
+
+AMR 2대 · 천장 웹캠 2대 · 3인 팀 · ROKEY 2차 (26.07.01~26.07.14)
+**본인 담당:** 관제 FSM(우선순위 선점)·쓰러짐 판정 규칙·메시지 전달 정책 설계와 디버깅
+
+- **개요:** 천장 웹캠이 쓰러짐·안전모 미착용·무단침입을 감지하면 가장 가까운 AMR을 출동시키는 안전관제 시스템
+- **선점 FSM:** 응급 > 안전모 > 순찰 순으로 현재 작업 선점
+- **신호 흔들림:** 쓰러지는 순간 응급 발동·해제가 1초에 5번 뒤집힘(디버깅 기록) → 해제 방향에만 지연을 걸어 응급 반응 속도 유지
+- **재배정 반복:** 이전 작업 취소를 "이동 끝"으로 오인 → "취소 중" 상태 분리
+- **쓰러짐 판정:** 가정이 깨지는 머리 높이 대신 몸통 각도를 주지표로, 다리가 서 있으면 거부
+- **회고:** 조용히 틀리는 문제일수록 신호를 단계별로 쪼개 원인을 좁혀야 한다
+
+<details>
+<summary><b>프로젝트 기술 전체 · 코드 근거</b></summary>
+
+- **감지(천장 웹캠 2대):** YOLO11-pose 자세 추정 + YOLOv8 안전모 검출(Roboflow 라벨링 → 학습), 호모그래피·Z 캘리브레이션(DLT 투영행렬)으로 map 좌표 변환, 두 카메라 간 동일 인물 통합(Re-ID)
+- **관제:** `fleet_fsm`이 최근접 로봇 선정·접근점 계산·큐 관리·상황 상태머신(NORMAL↔EMERGENCY) 수행, rosbridge 웹 관제 화면(출동 근거·이벤트 주입)
+- **메시지 정책:** 상태 라벨·좌표 명령·영상의 QoS(메시지 전달 보장 정책)를 의미별로 분리, timestamp 기준 30초를 넘긴 명령은 버려 오래된 명령의 재출동 위험 감소
+- **로봇 실행부:** TurtleBot4 Nav2/AMCL 주행·순찰·도킹, OAK-D 카메라로 소화기 ArUco 마커 인식
+- **점검 DB:** ArUco 인식 결과로 소화기 점검 이력 갱신, SQLite + Flask 웹 조회
+- **코드 근거:** [해제 방향 디바운스 — `ros_bridge.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L473-L499) · [의미별 QoS](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L75-L126) · [`CANCELING` 처리 — `fleet_fsm.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L565-L574) · [쓰러짐 판정 — `safety_logic.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/safety_logic.py#L230-L275) · [30초 stale 필터](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L385-L403)
+
+</details>
+
 ## License
 
 별도 license를 부여하지 않습니다 (All rights reserved). 팀 프로젝트 결과물을 포트폴리오로 열람할 수 있게 공개한 것입니다.
