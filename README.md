@@ -1,10 +1,9 @@
 # 산업안전 AMR 관제 시스템 (intelli1)
 
-> 두산로보틱스 ROKEY 부트캠프 팀 프로젝트의 제출 스냅샷입니다. 이 저장소에서 개인이 바꾼 것은 README 정리입니다.
+> 두산로보틱스 ROKEY 부트캠프 팀 프로젝트의 제출 스냅샷을 포트폴리오용으로 공개한 저장소입니다. 코드는 제출 당시 그대로이고, README를 정리했습니다.
 
 천장 웹캠 2대로 작업자의 **쓰러짐 / 안전모 미착용**을 감지하면, 관제 노드 `fleet_fsm`이 TurtleBot4 AMR 2대(`robot2`·`robot9`) 중 출동 가능한 최근접 로봇을 골라 현장으로 보냅니다.
-평시에는 AMR이 순찰합니다. 소화기 ArUco 인식 모듈과 점검 결과를 SQLite DB에 기록·Flask 웹으로 조회하는 모듈은 있지만, 현재 실행부와의 스캔 게이트(`aruco_scan_enable`) 연결은 미완성입니다([한계](#한계--미완성)).
-무단침입은 감지해서 토픽으로 발행하는 데까지만 구현돼 있고, 출동으로는 이어지지 않습니다([한계](#한계--미완성)).
+평시에는 AMR이 웨이포인트를 순찰합니다. 이 밖에 소화기 ArUco 인식·점검 결과 DB 기록(SQLite + Flask 조회) 모듈과 무단침입 감지 모듈이 들어 있습니다. 각 모듈의 연결 상태는 [한계](#한계--미완성)에 정리했습니다.
 
 > **핵심 설계**: 토픽을 **관찰(`/safety/*`) → 요청(`/alert/*`) → 명령(`/robotN/*`)** 3계층으로 나눴습니다. 카메라 쪽은 로봇을 모르고, 로봇 쪽은 카메라를 모릅니다. 로봇 선정은 `fleet_fsm` 한 곳에서만 하므로, 웹 버튼으로 넣은 요청도 감지 요청과 같은 경로로 처리됩니다.
 
@@ -28,7 +27,7 @@
                     ▼                               ▼
       amr_patrol_emer_helmet (robot2)   amr_patrol_emer_helmet (robot9)
       Nav2 주행 · 순찰 · 도킹                        ┆ 소화기 지점 도착
-                                                    ┆ aruco_scan_enable — 현재 실행부와 미연결
+                                                    ┆ aruco_scan_enable (연결 미완성, 한계 참조)
                                                     ▼
       aruco_detect (OAK-D) ──/robotN/aruco/detection/ids──▶ sqlite3db db_update
                        ◀──────── /robotN/aruco_check_done ──────────┘   │
@@ -37,13 +36,13 @@
 
 ## 무엇을 할 수 있나
 
-| 상황 | 시스템이 하는 일 |
-|---|---|
-| 작업자가 쓰러짐 | 상황을 `EMERGENCY`로 바꾸고, 사람에게서 0.7 m 떨어진 접근점으로 로봇을 출동시킵니다. 이때 배터리는 보지 않습니다 |
-| 안전모 미착용 | 대기 중이거나 순찰 중인 로봇을 보내 안전모를 배달합니다. 배달 후에는 도킹하지 않고 끊긴 지점부터 순찰을 이어 갑니다 |
-| 평시 | 웨이포인트를 순찰하고, 소화기 지점에서는 ArUco 대조가 끝날 때까지 기다립니다 |
-| 관제 웹 | 지도 위에 로봇과 사람 위치, 로봇별 선정 근거(거리·배터리·제외 사유)를 보여 주고 이벤트를 주입할 수 있습니다 |
-| 점검 웹 | 소화기 점검 결과와 스냅샷을 조회합니다 (Flask) |
+| 기능 | 시스템이 하는 일 | 담당 |
+|---|---|---|
+| 위험 감지 | 천장 웹캠 2대의 영상에서 쓰러짐·안전모 미착용·무단침입을 판정하고, 사람 위치를 map 좌표로 바꿔 `/safety/*`로 발행합니다 | `src/1_vision_pc3/safety_lib/` |
+| 쓰러짐 출동 | 상황을 `EMERGENCY`로 바꾸고, 사람에게서 0.7 m 떨어진 접근점으로 로봇을 출동시킵니다. 이때 배터리는 보지 않습니다 | `safety_alert_bridge` → `fleet_fsm` → `amr_patrol_emer_helmet` |
+| 안전모 배달 | 대기 중이거나 순찰 중인 로봇을 보내 안전모를 배달합니다. 배달 후에는 도킹하지 않고 끊긴 지점부터 순찰을 이어 갑니다 | 위와 같음 |
+| 순찰 · 소화기 점검 | 웨이포인트를 순찰하고, 소화기 지점에서는 ArUco 대조가 끝날 때까지 기다립니다. 소화기 모듈은 인식한 마커 ID로 점검 결과와 스냅샷을 DB에 기록합니다(실행부와의 연결은 [한계](#한계--미완성)) | `amr_patrol_emer_helmet`, `aruco_detect`, `db_update` |
+| 관제 · 점검 웹 | 지도 위에 로봇과 사람 위치, 로봇별 선정 근거(거리·배터리·제외 사유)를 보여 주고 이벤트를 주입할 수 있습니다. 소화기 점검 결과와 스냅샷은 Flask 웹에서 조회합니다 | `fleet_monitor.html`(rosbridge), `sqlite3db`의 `app` |
 
 ## 시스템 구조
 
@@ -119,12 +118,12 @@
 
 ## 환경 · 장비
 
-- Ubuntu 22.04, ROS 2 Humble, Python 3. 비전 PC에서는 YOLO 추론을 돌립니다(GPU 필요 여부 ⚠️ 미검증).
+- Ubuntu 22.04, ROS 2 Humble, Python 3. 비전 PC에서는 YOLO 추론을 돌립니다(GPU 필요 여부는 확인하지 않았습니다).
 - RMW는 `rmw_fastrtps_cpp`, `ROS_DOMAIN_ID=6`이고, 로봇 2대를 Discovery Server로 묶습니다.
 
 | 장비 | 설정 |
 |---|---|
-| TurtleBot4 ×2 | namespace `robot2`, `robot9`. Discovery Server를 로봇마다 하나씩 둡니다. 현재 문자열상 위치는 2·9이고, 서버 쪽 설정과는 대조하지 않았습니다 (`start.sh` 주석에는 robot9가 6으로 적혀 있음) |
+| TurtleBot4 ×2 | namespace `robot2`, `robot9`. Discovery Server를 로봇마다 하나씩 둡니다(문자열 위치 2·9, 서버 설정과는 대조 전. `start.sh` 주석엔 robot9 자리가 6) |
 | 천장 웹캠 ×2 | cam0 = "Web Camera", cam1 = "USB Composite"(Jieli). `start.sh`는 `v4l2-ctl` 이름으로 찾습니다 |
 | 비전 PC | 감지, `fleet_fsm`, bridge, rosbridge, 웹 서빙을 맡습니다 |
 | AMR PC | 로봇별 localization, nav2, `amr_patrol_emer_helmet`을 맡습니다 |
@@ -178,11 +177,11 @@ sudo apt install python3-opencv ros-humble-rosbridge-server
 rosdep install --from-paths src/2_ros2_packages --ignore-src -y
 
 # 2. 비전 전용 pip 패키지 (ultralytics만 pip)
-pip install ultralytics      # opencv-python이 딸려 오면 rclpy와 충돌할 수 있다 → 아래 주의
-                             # numpy는 2.0 미만이어야 한다 (Humble cv_bridge 호환)
+pip install ultralytics      # opencv-python이 딸려 오면 rclpy와 충돌 가능 → 아래 주의
+                             # numpy는 2.0 미만 필요 (Humble cv_bridge 호환)
 
-# 3. pose 모델: 감지 프로그램은 파일이 없으면 시작하지 않으므로 미리 받아 둔다
-(cd src/1_vision_pc3 && python3 -c "from ultralytics import YOLO; YOLO('yolo11s-pose.pt')")   # subshell이라 끝나면 저장소 루트로 돌아온다
+# 3. pose 모델: 파일이 없으면 감지 프로그램이 시작하지 않으므로 미리 받아 둠
+(cd src/1_vision_pc3 && python3 -c "from ultralytics import YOLO; YOLO('yolo11s-pose.pt')")   # subshell이라 끝나면 저장소 루트로 복귀
 
 # 4. 빌드: 현재 경로 패키지만
 colcon build --symlink-install --base-paths src/2_ros2_packages
@@ -195,7 +194,7 @@ source install/setup.bash
   - `src/fp_amr_vision`에도 같은 이름의 실행 파일이 있습니다.
 - **OpenCV는 apt(`python3-opencv`)를 쓰세요.** pip `opencv-python`과 rclpy가 한 프로세스에 함께 올라가면 Qt 충돌로 segfault가 날 수 있습니다.
 
-⚠️ 미검증 (이 절 전체): 위 명령은 코드와 `package.xml`을 근거로 정리한 것이고, 새 환경에서 처음부터 따라 해 보지는 않았습니다.
+> 이 절의 명령은 코드와 `package.xml` 기준으로 정리했습니다(새 환경에서 처음부터 재현하지는 않음).
 
 ## 실행
 
@@ -205,7 +204,7 @@ source install/setup.bash
 source /opt/ros/humble/setup.bash && source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export ROS_DOMAIN_ID=6
-export ROS_DISCOVERY_SERVER=";;<robot2_ip>:11811;;;;;;;<robot9_ip>:11811"   # 문자열상 위치 2 = robot2, 9 = robot9 (서버 설정과 대조 전)
+export ROS_DISCOVERY_SERVER=";;<robot2_ip>:11811;;;;;;;<robot9_ip>:11811"   # 위치 2 = robot2, 9 = robot9 (서버 설정과 대조 전)
 export ROS_SUPER_CLIENT=True   # 필수
 ```
 
@@ -223,10 +222,10 @@ export ROS_SUPER_CLIENT=True   # 필수
 | 6 | `ros2 launch sqlite3db monitoring.launch.py` | 관제 PC | `create_db`가 끝난 뒤 `ros2_db_node`·`db_update`·`app`이 respawn으로 뜸 |
 | 7 | 브라우저에서 `http://<비전PC_IP>:8000/fleet_monitor.html` | 임의 PC | rosbridge(9090) 연결 표시 |
 
-5단계는 원래 `./start.sh`로 한 번에 띄웠습니다. 다만 이 스크립트는 원래 실행 PC의 경로를 쓰고 있어서, 이 저장소에서는 아래처럼 나눠 띄워야 합니다.
+5단계는 원래 `./start.sh`로 한 번에 띄웠습니다. 이 저장소에서는 아래처럼 나눠 띄웁니다(`start.sh` 경로 문제는 [한계](#한계--미완성), 분할 명령은 재현 전).
 
 ```bash
-ros2 launch rosbridge_server rosbridge_websocket_launch.xml        # 포트 9090. 두 개 뜨면 웹이 좀비 쪽에 붙어 'connecting'에서 멈춘다
+ros2 launch rosbridge_server rosbridge_websocket_launch.xml        # 포트 9090. 중복 실행 시 웹이 좀비 쪽에 붙어 'connecting'에서 멈춤
 ros2 run fp_amr_fsm fleet_fsm
 ros2 run fp_amr_fsm safety_alert_bridge
 python3 -m http.server 8000 --directory src/2_ros2_packages/fp_amr_fsm/web   # 다른 PC에서 접속하려면 http로 서빙
@@ -234,7 +233,6 @@ cd src/1_vision_pc3 && python3 12_dual_camera_entry_yolo_tracking_modular.py --c
 ```
 
 - 감지 프로그램은 모델·캘리브레이션을 스크립트 위치 기준으로 찾습니다. 카메라 번호는 `v4l2-ctl --list-devices`로 확인합니다.
-- 위 분할 실행 명령은 ⚠️ 미검증입니다.
 
 **종료**
 - 감지는 반드시 **감지 창에서 `q`**로 끝내세요.
@@ -245,24 +243,25 @@ cd src/1_vision_pc3 && python3 12_dual_camera_entry_yolo_tracking_modular.py --c
 
 ## 검증
 
-- 자동 테스트는 각 패키지의 `test_copyright`·`test_flake8`·`test_pep257`(스타일 린트)뿐입니다. 판정·선정 로직의 단위 테스트는 없습니다.
+- 자동 테스트는 각 패키지의 `test_copyright`·`test_flake8`·`test_pep257`(스타일 린트)뿐입니다. 판정·선정 로직의 단위 테스트는 없습니다(README 정리 때 재실행하지 않음).
 - 실기 성능 검증은 하지 않았습니다.
 
 ## 한계 · 미완성
 
 - **무단침입은 출동으로 이어지지 않습니다.** 비전이 `/safety/unauthorized_*`를 발행하지만 `safety_alert_bridge`·`fleet_fsm`·웹 어디서도 구독하지 않습니다.
-- **현재 경로 조합에서는 소화기 점검이 연결되지 않습니다.**
-  - `aruco_detect`는 `aruco_scan_enable`=True인 동안에만 카메라를 구독합니다.
-  - 그런데 이 토픽을 발행하는 것은 `amr_aruco`판 실행부(`patrol_navigator.py:71`)뿐이고, 현재 경로인 `fp_amr_fsm`판 실행부는 발행하지 않습니다.
-  - 그래서 `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청이 오거나, 배터리가 낮아 복귀할 때(`:511-518`), 또는 누가 수동으로 `aruco_check_done`을 발행해야 풀립니다.
-  - 두 판의 통합(`amr_aruco`의 모듈 구조 + `fp_amr_fsm`의 최신 수정)은 남은 과제입니다.
-- **`start.sh`·`4_docs/`는 원래 실행 PC 기준입니다.**
-  - `$HOME/turtlebot4_ws/final_project/{detection_final, fp_amr_fsm_connec_vision}` 경로와 로봇 IP(`192.168.107.x`), NIC 이름(`wlo1`)이 하드코딩돼 있습니다(`start.sh:15,25,127,130,141`).
-  - 이 저장소 구조에서는 그대로 돌지 않습니다.
-- `fp_amr_fsm` 패키지가 두 곳에 있어 `src/` 전체 빌드가 깨집니다(설치 절 참조).
+- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부(`patrol_navigator.py:71`)만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
+- **`start.sh`·`4_docs/`는 원래 실행 PC 기준이라 그대로 돌지 않습니다.** 경로(`$HOME/turtlebot4_ws/final_project/{detection_final, fp_amr_fsm_connec_vision}`)·로봇 IP(`192.168.107.x`)·NIC(`wlo1`)가 하드코딩돼 있습니다(`start.sh:15,25,127,130,141`).
+- **helmet 모델 `best.pt`는 저장소에 없습니다.** 없으면 감지 프로그램이 시작 단계에서 멈춥니다([저장소 구성](#저장소-구성)).
+- **`src/` 전체를 `colcon build`하면 깨집니다.** `fp_amr_fsm` 패키지가 두 곳에 있습니다([설치](#설치)).
+
+<details>
+<summary>그 밖의 제약</summary>
+
+- 두 판의 통합(`amr_aruco`의 모듈 구조 + `fp_amr_fsm`의 최신 수정)은 남은 과제입니다.
 - 실행부의 순찰 웨이포인트(`PATROL_POINTS`)와 `fleet_fsm`의 `ROBOTS`가 코드 상수로 박혀 있습니다. 웹 `fleet_monitor.html`의 `ROBOTS`와 손으로 맞춰야 합니다.
 - Flask `app`은 `127.0.0.1:5000`, `debug=True`로 뜹니다. 다른 PC에서는 접속할 수 없습니다.
-- 패키지 `package.xml`의 license 필드가 TODO로 남아 있습니다.
+
+</details>
 
 ## 더 읽을 문서
 
