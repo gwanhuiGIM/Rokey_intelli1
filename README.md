@@ -44,6 +44,12 @@
 | 순찰 · 소화기 점검 | 웨이포인트를 순찰하고, 소화기 지점에서는 ArUco 대조가 끝날 때까지 기다립니다. 소화기 모듈은 인식한 마커 ID로 점검 결과와 스냅샷을 DB에 기록합니다(실행부와의 연결은 [한계](#한계--미완성)) | `amr_patrol_emer_helmet`, `aruco_detect`, `db_update` |
 | 관제 · 점검 웹 | 지도 위에 로봇과 사람 위치, 로봇별 선정 근거(거리·배터리·제외 사유)를 보여 주고 이벤트를 주입할 수 있습니다. 소화기 점검 결과와 스냅샷은 Flask 웹에서 조회합니다 | `fleet_monitor.html`(rosbridge), `sqlite3db`의 `app` |
 
+<p align="center"><img src="images/fleet_monitor.jpg" alt="fleet_monitor.html 관제 화면: 지도 위 로봇과 사람 위치, 로봇별 선정 근거" width="800"></p>
+<p align="center"><sub>관제 웹 <code>fleet_monitor.html</code> — 지도 위 로봇·사람 위치, 로봇별 선정 근거(거리·배터리), 이벤트 주입</sub></p>
+
+<p align="center"><img src="images/flask_inspection_history.jpg" alt="Flask 웹의 소화기 점검 결과와 스냅샷 조회 화면" width="800"></p>
+<p align="center"><sub>Flask 웹(<code>127.0.0.1:5000</code>) — 소화기 점검 결과와 스냅샷 조회</sub></p>
+
 ## 시스템 구조
 
 **비전** — `src/1_vision_pc3/`는 ROS 패키지가 아닌 단독 Python 프로그램입니다.
@@ -133,6 +139,9 @@ PC 배치 문서는 둘입니다.
 - `4_docs/FOR_AMR_TEAM.md`: 비전 PC와 AMR PC로 나누는 배치입니다.
 
 **보정**: `src/1_vision_pc3/calibration/`의 `camN_to_map.npz`(호모그래피)·`camN_z_calib.npz`(3×4 P)·`entry_roi.json`은 카메라 위치와 맵(`final_project.yaml`)에 묶여 있습니다. 카메라를 옮기거나 맵을 다시 만들면 `src/3_calibration_tools/`로 다시 만들어야 합니다(번호가 곧 작업 순서).
+
+<p align="center"><img src="images/homography_check.jpg" alt="호모그래피 검증 화면: 카메라 영상과 map의 대응점" width="800"></p>
+<p align="center"><sub>호모그래피 검증 — 왼쪽 cam0 영상, 오른쪽 map의 대응점</sub></p>
 
 | 스크립트 | 하는 일 |
 |---|---|
