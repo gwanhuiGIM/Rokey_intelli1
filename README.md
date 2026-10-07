@@ -2,6 +2,8 @@
 
 > 두산로보틱스 ROKEY 부트캠프 팀 프로젝트의 제출 스냅샷을 포트폴리오용으로 공개한 저장소입니다. 코드는 제출 당시 그대로이고, README를 정리했습니다.
 
+> ▶️ **[1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)** — 이 프로젝트를 가장 빨리 파악할 수 있는 자료입니다. 참고 문서는 [더 읽을 문서](#더-읽을-문서), 본인 담당은 [프로젝트 요약](#contribution)에 있습니다.
+
 천장 웹캠 2대로 작업자의 **쓰러짐 / 안전모 미착용**을 감지하면, 관제 노드 `fleet_fsm`이 TurtleBot4 AMR 2대(`robot2`·`robot9`) 중 출동 가능한 최근접 로봇을 골라 현장으로 보냅니다.
 평시에는 AMR이 웨이포인트를 순찰합니다. 이 밖에 소화기 ArUco 인식·점검 결과 DB 기록(SQLite + Flask 조회) 모듈과 무단침입 감지 모듈이 들어 있습니다. 각 모듈의 연결 상태는 [한계](#한계--미완성)에 정리했습니다.
 
@@ -34,6 +36,36 @@
                                                               Flask app (점검 현황)
 ```
 
+<a id="contribution"></a>
+## 프로젝트 요약 · 본인 담당 (김관희)
+
+> 포트폴리오용 프로젝트 요약입니다. 이 저장소의 코드는 팀 최종 제출본이고, 제 역할 범위는 **본인 담당** 행에 적었습니다. 접힌 '프로젝트 기술 전체'는 팀 전체 시스템 설명입니다. 다른 프로젝트: [github.com/gwanhuiGIM](https://github.com/gwanhuiGIM)
+
+**모사한 산업 현장을 순찰하다가, 관제 웹캠이 안전모 미착용·작업자 쓰러짐을 감지하면 출동 가능한 AMR을 보내 조치하는 시스템을 구현하였습니다.**<br>
+이 과정에서 에러 메시지 없이 로봇을 헛걸음시킬 수 있던 신호 흔들림을 단계별로 쪼개 잡았습니다.
+
+AMR 2대 · 천장 웹캠 2대 · 3인 팀 · ROKEY 2차 (26.07.01~26.07.14)
+**본인 담당:** 관제 FSM(우선순위 선점)·쓰러짐 판정 규칙·메시지 전달 정책 설계와 디버깅
+
+- **개요:** 천장 웹캠이 쓰러짐·안전모 미착용·무단침입을 감지하면 가장 가까운 AMR을 출동시키는 안전관제 시스템
+- **선점 FSM:** 응급 > 안전모 > 순찰 순으로 현재 작업 선점
+- **신호 흔들림:** 쓰러지는 순간 응급 발동·해제가 1초에 5번 뒤집힘(디버깅 기록) → 해제 방향에만 지연을 걸어 응급 반응 속도 유지
+- **재배정 반복:** 이전 작업 취소를 "이동 끝"으로 오인 → "취소 중" 상태 분리
+- **쓰러짐 판정:** 가정이 깨지는 머리 높이 대신 몸통 각도를 주지표로, 다리가 서 있으면 거부
+- **회고:** 조용히 틀리는 문제일수록 신호를 단계별로 쪼개 원인을 좁혀야 한다
+
+<details>
+<summary><b>프로젝트 기술 전체 · 코드 근거</b></summary>
+
+- **감지(천장 웹캠 2대):** YOLO11-pose 자세 추정 + YOLOv8 안전모 검출(Roboflow 라벨링 → 학습), 호모그래피·Z 캘리브레이션(DLT 투영행렬)으로 map 좌표 변환, 두 카메라 간 동일 인물 통합(Re-ID)
+- **관제:** `fleet_fsm`이 최근접 로봇 선정·접근점 계산·큐 관리·상황 상태머신(NORMAL↔EMERGENCY) 수행, rosbridge 웹 관제 화면(출동 근거·이벤트 주입)
+- **메시지 정책:** 상태 라벨·좌표 명령·영상의 QoS(메시지 전달 보장 정책)를 의미별로 분리, timestamp 기준 30초를 넘긴 명령은 버려 오래된 명령의 재출동 위험 감소
+- **로봇 실행부:** TurtleBot4 Nav2/AMCL 주행·순찰·도킹, OAK-D 카메라로 소화기 ArUco 마커 인식
+- **점검 DB:** ArUco 인식 결과로 소화기 점검 이력 갱신, SQLite + Flask 웹 조회
+- **코드 근거:** [해제 방향 디바운스 — `ros_bridge.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L473-L499) · [의미별 QoS](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L75-L126) · [`CANCELING` 처리 — `fleet_fsm.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L565-L574) · [쓰러짐 판정 — `safety_logic.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/safety_logic.py#L230-L275) · [30초 stale 필터](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L385-L403)
+
+</details>
+
 ## 무엇을 할 수 있나
 
 | 기능 | 시스템이 하는 일 | 담당 |
@@ -50,7 +82,13 @@
 <p align="center"><img src="images/flask_inspection_history.jpg" alt="Flask 웹의 소화기 점검 결과와 스냅샷 조회 화면" width="800"></p>
 <p align="center"><sub>Flask 웹(<code>127.0.0.1:5000</code>) — 소화기 점검 결과와 스냅샷 조회</sub></p>
 
+<p align="center"><img src="images/homography_check.jpg" alt="호모그래피 검증 화면: 카메라 영상과 map의 대응점" width="800"></p>
+<p align="center"><sub>호모그래피 검증 — 왼쪽 cam0 영상, 오른쪽 map의 대응점</sub></p>
+
 ## 시스템 구조
+
+<details>
+<summary>모듈별 파일·노드, 우선순위, 토픽 계약, 현재 경로와 이력</summary>
 
 **비전** — `src/1_vision_pc3/`는 ROS 패키지가 아닌 단독 Python 프로그램입니다.
 - 진입점은 `12_dual_camera_entry_yolo_tracking_modular.py`이고, 판정 로직은 `safety_lib/`에 있습니다.
@@ -122,7 +160,39 @@
 | `src/3_calibration_tools/06~12`, `debug_posture.py` 등 | 판정 알고리즘 개발 이력입니다 (bbox → z → pose) |
 | `src/turtlebot4*`, `src/m-explore-ros2` | upstream 코드입니다 |
 
+</details>
+
+## 한계 · 미완성
+
+- **무단침입은 출동으로 이어지지 않습니다.** 비전이 `/safety/unauthorized_*`를 발행하지만 `safety_alert_bridge`·`fleet_fsm`·웹 어디서도 구독하지 않습니다.
+- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부(`patrol_navigator.py:71`)만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
+- **`start.sh`·`4_docs/`는 원래 실행 PC 기준이라 그대로 돌지 않습니다.** 경로(`$HOME/turtlebot4_ws/final_project/{detection_final, fp_amr_fsm_connec_vision}`)·로봇 IP(`192.168.107.x`)·NIC(`wlo1`)가 하드코딩돼 있습니다(`start.sh:15,25,127,130,141`).
+- **helmet 모델 `best.pt`는 저장소에 없습니다.** 없으면 감지 프로그램이 시작 단계에서 멈춥니다([저장소 구성](#저장소-구성)).
+- **`src/` 전체를 `colcon build`하면 깨집니다.** `fp_amr_fsm` 패키지가 두 곳에 있습니다([설치](#설치)).
+
+<details>
+<summary>그 밖의 제약</summary>
+
+- 두 판의 통합(`amr_aruco`의 모듈 구조 + `fp_amr_fsm`의 최신 수정)은 남은 과제입니다.
+- 실행부의 순찰 웨이포인트(`PATROL_POINTS`)와 `fleet_fsm`의 `ROBOTS`가 코드 상수로 박혀 있습니다. 웹 `fleet_monitor.html`의 `ROBOTS`와 손으로 맞춰야 합니다.
+- Flask `app`은 `127.0.0.1:5000`, `debug=True`로 뜹니다. 다른 PC에서는 접속할 수 없습니다.
+
+</details>
+
+## 더 읽을 문서
+
+| 문서 | 내용 | 지위 |
+|---|---|---|
+| `src/2_ros2_packages/fp_amr_fsm/README.md` | 관제·실행부 노드 상세 | 정본 패키지 문서 |
+| `src/2_ros2_packages/amr_aruco/README.md` | ArUco 인식·모듈 분리판 실행부, 파라미터 | 정본 패키지 문서 |
+| `src/1_vision_pc3/PC3_ROS_INTERFACE.md` | 비전이 발행하는 토픽 명세 | 정본 |
+| `4_docs/RUN_PC3.md`, `PC4_SETUP.md`, `FOR_AMR_TEAM.md` | PC별 실행 절차 (원래 실행 PC 경로 기준) | 참고 이력 |
+| `src/fp_amr_fsm/README.md` | 리팩터 시도판 설명 (robot2·robot6) | 참고 이력 |
+
 ## 환경 · 장비
+
+<details>
+<summary>OS·RMW, 장비 설정, PC 배치, 보정 도구</summary>
 
 - Ubuntu 22.04, ROS 2 Humble, Python 3. 비전 PC에서는 YOLO 추론을 돌립니다(GPU 필요 여부는 확인하지 않았습니다).
 - RMW는 `rmw_fastrtps_cpp`, `ROS_DOMAIN_ID=6`이고, 로봇 2대를 Discovery Server로 묶습니다.
@@ -140,9 +210,6 @@ PC 배치 문서는 둘입니다.
 
 **보정**: `src/1_vision_pc3/calibration/`의 `camN_to_map.npz`(호모그래피)·`camN_z_calib.npz`(3×4 P)·`entry_roi.json`은 카메라 위치와 맵(`final_project.yaml`)에 묶여 있습니다. 카메라를 옮기거나 맵을 다시 만들면 `src/3_calibration_tools/`로 다시 만들어야 합니다(번호가 곧 작업 순서).
 
-<p align="center"><img src="images/homography_check.jpg" alt="호모그래피 검증 화면: 카메라 영상과 map의 대응점" width="800"></p>
-<p align="center"><sub>호모그래피 검증 — 왼쪽 cam0 영상, 오른쪽 map의 대응점</sub></p>
-
 | 스크립트 | 하는 일 |
 |---|---|
 | `00_capture_ref.py` · `01_dual_camera_capture.py` | 기준 프레임을 촬영합니다 |
@@ -151,7 +218,12 @@ PC 배치 문서는 둘입니다.
 | `05_guided_…` / `05_auto_single_camera_capture.py` | 높이별 대응점을 수집합니다 |
 | `08_z_height_calibration_test.py` | 3×4 P를 구해 `camN_z_calib.npz`를 만듭니다 |
 
+</details>
+
 ## 저장소 구성
+
+<details>
+<summary>디렉터리 트리, 저장소에 없는 것(모델 가중치 등)</summary>
 
 ```
 .
@@ -178,7 +250,12 @@ PC 배치 문서는 둘입니다.
 - `yolo11s-pose.pt`: ultralytics 공개 가중치입니다. 첫 로드 때 자동으로 내려받을 수 있습니다(설치 3단계).
 - `yolo_experiments/best.pt`: **미포함입니다(팀이 학습한 helmet 모델).** 없으면 감지 프로그램이 시작 단계에서 `FileNotFoundError`로 멈춥니다.
 
+</details>
+
 ## 설치
+
+<details>
+<summary>설치·빌드 절차와 주의점</summary>
 
 ```bash
 # 1. ROS 의존성: package.xml의 exec_depend (flask, openpyxl, opencv, nav2_simple_commander, turtlebot4_navigation 등)
@@ -205,7 +282,12 @@ source install/setup.bash
 
 > 이 절의 명령은 코드와 `package.xml` 기준으로 정리했습니다(새 환경에서 처음부터 재현하지는 않음).
 
+</details>
+
 ## 실행
+
+<details>
+<summary>실행 순서, 분할 기동 명령, 종료 방법</summary>
 
 모든 터미널에서 공통 환경을 먼저 잡습니다.
 
@@ -250,69 +332,12 @@ cd src/1_vision_pc3 && python3 12_dual_camera_entry_yolo_tracking_modular.py --c
   - `start.sh --stop`도 감지에는 SIGINT만 보냅니다.
 - 로봇은 Nav2 goal이 끝났거나 취소됐는지 확인한 뒤 실행부를 끕니다(실행부에 별도의 종료 절차 코드는 없습니다).
 
+</details>
+
 ## 검증
 
 - 자동 테스트는 각 패키지의 `test_copyright`·`test_flake8`·`test_pep257`(스타일 린트)뿐입니다. 판정·선정 로직의 단위 테스트는 없습니다(README 정리 때 재실행하지 않음).
 - 실기 성능 검증은 하지 않았습니다.
-
-## 한계 · 미완성
-
-- **무단침입은 출동으로 이어지지 않습니다.** 비전이 `/safety/unauthorized_*`를 발행하지만 `safety_alert_bridge`·`fleet_fsm`·웹 어디서도 구독하지 않습니다.
-- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부(`patrol_navigator.py:71`)만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
-- **`start.sh`·`4_docs/`는 원래 실행 PC 기준이라 그대로 돌지 않습니다.** 경로(`$HOME/turtlebot4_ws/final_project/{detection_final, fp_amr_fsm_connec_vision}`)·로봇 IP(`192.168.107.x`)·NIC(`wlo1`)가 하드코딩돼 있습니다(`start.sh:15,25,127,130,141`).
-- **helmet 모델 `best.pt`는 저장소에 없습니다.** 없으면 감지 프로그램이 시작 단계에서 멈춥니다([저장소 구성](#저장소-구성)).
-- **`src/` 전체를 `colcon build`하면 깨집니다.** `fp_amr_fsm` 패키지가 두 곳에 있습니다([설치](#설치)).
-
-<details>
-<summary>그 밖의 제약</summary>
-
-- 두 판의 통합(`amr_aruco`의 모듈 구조 + `fp_amr_fsm`의 최신 수정)은 남은 과제입니다.
-- 실행부의 순찰 웨이포인트(`PATROL_POINTS`)와 `fleet_fsm`의 `ROBOTS`가 코드 상수로 박혀 있습니다. 웹 `fleet_monitor.html`의 `ROBOTS`와 손으로 맞춰야 합니다.
-- Flask `app`은 `127.0.0.1:5000`, `debug=True`로 뜹니다. 다른 PC에서는 접속할 수 없습니다.
-
-</details>
-
-## 더 읽을 문서
-
-| 문서 | 내용 | 지위 |
-|---|---|---|
-| `src/2_ros2_packages/fp_amr_fsm/README.md` | 관제·실행부 노드 상세 | 정본 패키지 문서 |
-| `src/2_ros2_packages/amr_aruco/README.md` | ArUco 인식·모듈 분리판 실행부, 파라미터 | 정본 패키지 문서 |
-| `src/1_vision_pc3/PC3_ROS_INTERFACE.md` | 비전이 발행하는 토픽 명세 | 정본 |
-| `4_docs/RUN_PC3.md`, `PC4_SETUP.md`, `FOR_AMR_TEAM.md` | PC별 실행 절차 (원래 실행 PC 경로 기준) | 참고 이력 |
-| `src/fp_amr_fsm/README.md` | 리팩터 시도판 설명 (robot2·robot6) | 참고 이력 |
-
-<a id="contribution"></a>
-## 프로젝트 요약 · 본인 담당 (김관희)
-
-> 포트폴리오용 프로젝트 요약입니다. 이 저장소의 코드는 팀 최종 제출본이고, 제 역할 범위는 **본인 담당** 행에 적었습니다. 접힌 '프로젝트 기술 전체'는 팀 전체 시스템 설명입니다. 다른 프로젝트: [github.com/gwanhuiGIM](https://github.com/gwanhuiGIM)
-
-**모사한 산업 현장을 순찰하다가, 관제 웹캠이 안전모 미착용·작업자 쓰러짐을 감지하면 출동 가능한 AMR을 보내 조치하는 시스템을 구현하였습니다.**<br>
-이 과정에서 에러 메시지 없이 로봇을 헛걸음시킬 수 있던 신호 흔들림을 단계별로 쪼개 잡았습니다.
-
-▶️ [1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)
-
-AMR 2대 · 천장 웹캠 2대 · 3인 팀 · ROKEY 2차 (26.07.01~26.07.14)
-**본인 담당:** 관제 FSM(우선순위 선점)·쓰러짐 판정 규칙·메시지 전달 정책 설계와 디버깅
-
-- **개요:** 천장 웹캠이 쓰러짐·안전모 미착용·무단침입을 감지하면 가장 가까운 AMR을 출동시키는 안전관제 시스템
-- **선점 FSM:** 응급 > 안전모 > 순찰 순으로 현재 작업 선점
-- **신호 흔들림:** 쓰러지는 순간 응급 발동·해제가 1초에 5번 뒤집힘(디버깅 기록) → 해제 방향에만 지연을 걸어 응급 반응 속도 유지
-- **재배정 반복:** 이전 작업 취소를 "이동 끝"으로 오인 → "취소 중" 상태 분리
-- **쓰러짐 판정:** 가정이 깨지는 머리 높이 대신 몸통 각도를 주지표로, 다리가 서 있으면 거부
-- **회고:** 조용히 틀리는 문제일수록 신호를 단계별로 쪼개 원인을 좁혀야 한다
-
-<details>
-<summary><b>프로젝트 기술 전체 · 코드 근거</b></summary>
-
-- **감지(천장 웹캠 2대):** YOLO11-pose 자세 추정 + YOLOv8 안전모 검출(Roboflow 라벨링 → 학습), 호모그래피·Z 캘리브레이션(DLT 투영행렬)으로 map 좌표 변환, 두 카메라 간 동일 인물 통합(Re-ID)
-- **관제:** `fleet_fsm`이 최근접 로봇 선정·접근점 계산·큐 관리·상황 상태머신(NORMAL↔EMERGENCY) 수행, rosbridge 웹 관제 화면(출동 근거·이벤트 주입)
-- **메시지 정책:** 상태 라벨·좌표 명령·영상의 QoS(메시지 전달 보장 정책)를 의미별로 분리, timestamp 기준 30초를 넘긴 명령은 버려 오래된 명령의 재출동 위험 감소
-- **로봇 실행부:** TurtleBot4 Nav2/AMCL 주행·순찰·도킹, OAK-D 카메라로 소화기 ArUco 마커 인식
-- **점검 DB:** ArUco 인식 결과로 소화기 점검 이력 갱신, SQLite + Flask 웹 조회
-- **코드 근거:** [해제 방향 디바운스 — `ros_bridge.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L473-L499) · [의미별 QoS](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L75-L126) · [`CANCELING` 처리 — `fleet_fsm.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L565-L574) · [쓰러짐 판정 — `safety_logic.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/safety_logic.py#L230-L275) · [30초 stale 필터](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L385-L403)
-
-</details>
 
 ## License
 
