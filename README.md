@@ -2,7 +2,7 @@
 
 > 두산로보틱스 ROKEY 부트캠프 팀 프로젝트의 제출 스냅샷을 포트폴리오용으로 공개한 저장소입니다. 코드는 제출 당시 그대로이고, README를 정리했습니다.
 
-> ▶️ **[1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)** — 이 프로젝트를 가장 빨리 파악할 수 있는 자료입니다. 참고 문서는 [더 읽을 문서](#더-읽을-문서), 본인 담당은 [프로젝트 요약](#contribution)에 있습니다.
+> ▶️ **[1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)** — 이 프로젝트를 가장 빨리 파악할 수 있는 자료입니다. 참고 문서는 [더 읽을 문서](#더-읽을-문서)에 있습니다.
 >
 > 📄 [발표 자료(PDF, 58쪽)](https://github.com/gwanhuiGIM/Rokey_intelli1/releases/download/presentation/intelli1_presentation.pdf) — 세부 기술 발표 자료
 
@@ -38,33 +38,66 @@
                                                               Flask app (점검 현황)
 ```
 
-<a id="contribution"></a>
-## 프로젝트 요약 · 본인 담당 (김관희)
-
-> 포트폴리오용 프로젝트 요약입니다. 이 저장소의 코드는 팀 최종 제출본이고, 제 역할 범위는 **본인 담당** 행에 적었습니다. 접힌 '프로젝트 기술 전체'는 팀 전체 시스템 설명입니다. 다른 프로젝트: [github.com/gwanhuiGIM](https://github.com/gwanhuiGIM)
-
-**모사한 산업 현장을 순찰하다가, 관제 웹캠이 안전모 미착용·작업자 쓰러짐을 감지하면 출동 가능한 AMR을 보내 조치하는 시스템을 구현하였습니다.**<br>
-이 과정에서 에러 메시지 없이 로봇을 헛걸음시킬 수 있던 신호 흔들림을 단계별로 쪼개 잡았습니다.
-
-AMR 2대 · 천장 웹캠 2대 · 3인 팀 · ROKEY 2차 (26.07.01~26.07.14)
-**본인 담당:** 관제 FSM(우선순위 선점)·쓰러짐 판정 규칙·메시지 전달 정책 설계와 디버깅
-
-- **개요:** 천장 웹캠이 쓰러짐·안전모 미착용·무단침입을 감지하면 가장 가까운 AMR을 출동시키는 안전관제 시스템
-- **선점 FSM:** 응급 > 안전모 > 순찰 순으로 현재 작업 선점
-- **신호 흔들림:** 쓰러지는 순간 응급 발동·해제가 1초에 5번 뒤집힘(디버깅 기록) → 해제 방향에만 지연을 걸어 응급 반응 속도 유지
-- **재배정 반복:** 이전 작업 취소를 "이동 끝"으로 오인 → "취소 중" 상태 분리
-- **쓰러짐 판정:** 가정이 깨지는 머리 높이 대신 몸통 각도를 주지표로, 다리가 서 있으면 거부
-- **회고:** 조용히 틀리는 문제일수록 신호를 단계별로 쪼개 원인을 좁혀야 한다
+## 환경 · 장비
 
 <details>
-<summary><b>프로젝트 기술 전체 · 코드 근거</b></summary>
+<summary>OS·RMW, 장비 설정, PC 배치, 보정 도구</summary>
 
-- **감지(천장 웹캠 2대):** YOLO11-pose 자세 추정 + YOLOv8 안전모 검출(Roboflow 라벨링 → 학습), 호모그래피·Z 캘리브레이션(DLT 투영행렬)으로 map 좌표 변환, 두 카메라 간 동일 인물 통합(Re-ID)
-- **관제:** `fleet_fsm`이 최근접 로봇 선정·접근점 계산·큐 관리·상황 상태머신(NORMAL↔EMERGENCY) 수행, rosbridge 웹 관제 화면(출동 근거·이벤트 주입)
-- **메시지 정책:** 상태 라벨·좌표 명령·영상의 QoS(메시지 전달 보장 정책)를 의미별로 분리, timestamp 기준 30초를 넘긴 명령은 버려 오래된 명령의 재출동 위험 감소
-- **로봇 실행부:** TurtleBot4 Nav2/AMCL 주행·순찰·도킹, OAK-D 카메라로 소화기 ArUco 마커 인식
-- **점검 DB:** ArUco 인식 결과로 소화기 점검 이력 갱신, SQLite + Flask 웹 조회
-- **코드 근거:** [해제 방향 디바운스 — `ros_bridge.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L473-L499) · [의미별 QoS](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/ros_bridge.py#L75-L126) · [`CANCELING` 처리 — `fleet_fsm.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L565-L574) · [쓰러짐 판정 — `safety_logic.py`](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/1_vision_pc3/safety_lib/safety_logic.py#L230-L275) · [30초 stale 필터](https://github.com/gwanhuiGIM/Rokey_intelli1/blob/main/src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L385-L403)
+- Ubuntu 22.04, ROS 2 Humble, Python 3. 비전 PC에서는 YOLO 추론을 돌립니다(GPU 필요 여부는 확인하지 않았습니다).
+- RMW는 `rmw_fastrtps_cpp`, `ROS_DOMAIN_ID=6`이고, 로봇 2대를 Discovery Server로 묶습니다.
+
+| 장비 | 설정 |
+|---|---|
+| TurtleBot4 ×2 | namespace `robot2`, `robot9`. Discovery Server를 로봇마다 하나씩 둡니다(문자열 위치 2·9, 서버 설정과는 대조 전. `start.sh` 주석엔 robot9 자리가 6) |
+| 천장 웹캠 ×2 | cam0 = "Web Camera", cam1 = "USB Composite"(Jieli). `start.sh`는 `v4l2-ctl` 이름으로 찾습니다 |
+| 비전 PC | 감지, `fleet_fsm`, bridge, rosbridge, 웹 서빙을 맡습니다 |
+| AMR PC | 로봇별 localization, nav2, `amr_patrol_emer_helmet`을 맡습니다 |
+
+PC 배치 문서는 둘입니다.
+- `4_docs/RUN_PC3.md`: PC 한 대로 전부 돌리는 검증용 배치입니다.
+- `4_docs/FOR_AMR_TEAM.md`: 비전 PC와 AMR PC로 나누는 배치입니다.
+
+**보정**: `src/1_vision_pc3/calibration/`의 `camN_to_map.npz`(호모그래피)·`camN_z_calib.npz`(3×4 P)·`entry_roi.json`은 카메라 위치와 맵(`final_project.yaml`)에 묶여 있습니다. 카메라를 옮기거나 맵을 다시 만들면 `src/3_calibration_tools/`로 다시 만들어야 합니다(번호가 곧 작업 순서).
+
+| 스크립트 | 하는 일 |
+|---|---|
+| `00_capture_ref.py` · `01_dual_camera_capture.py` | 기준 프레임을 촬영합니다 |
+| `02_make_homography_pairwise.py` | 픽셀↔map 대응점으로 `camN_to_map.npz`를 만듭니다 |
+| `03` · `04` | 호모그래피를 눈으로 검증합니다 |
+| `05_guided_…` / `05_auto_single_camera_capture.py` | 높이별 대응점을 수집합니다 |
+| `08_z_height_calibration_test.py` | 3×4 P를 구해 `camN_z_calib.npz`를 만듭니다 |
+
+</details>
+
+## 저장소 구성
+
+<details>
+<summary>디렉터리 트리, 저장소에 없는 것(모델 가중치 등)</summary>
+
+```
+.
+├── src/
+│   ├── 1_vision_pc3/          # 비전 감지 (단독 Python) + calibration/ + 맵
+│   ├── 2_ros2_packages/       # 현재 ROS 2 패키지: fp_amr_fsm, amr_aruco, sqlite3db
+│   ├── 3_calibration_tools/   # 호모그래피·Z캘리브 제작 도구 + 판정 개발 이력
+│   ├── fp_amr_fsm/            # 이력: 관제 리팩터 시도 (같은 패키지명!)
+│   ├── fp_amr_vision/         # 이력: 구 패키지 + ArUco 마커 이미지
+│   └── turtlebot4*, m-explore-ros2   # upstream
+├── map/                       # final_project 맵 + fleet_monitor.html 사본
+├── 4_docs/                    # 실행 절차서 (RUN_PC3, PC4_SETUP, FOR_AMR_TEAM)
+└── start.sh                   # 비전 PC 일괄 기동 스크립트 (원래 실행 PC 경로 기준, 한계 참조)
+```
+
+**저장소에 없는 것**
+
+| 항목 | 받는 법 |
+|---|---|
+| 모델 가중치 `*.pt` (`.gitignore`로 제외) | 아래 두 줄 참고 |
+| `fire_db.db` | `create_db`가 만듭니다 |
+| `camera_frames/` | 실행 중에 생깁니다 |
+
+- `yolo11s-pose.pt`: ultralytics 공개 가중치입니다. 첫 로드 때 자동으로 내려받을 수 있습니다(설치 3단계).
+- `yolo_experiments/best.pt`: **미포함입니다(팀이 학습한 helmet 모델).** 없으면 감지 프로그램이 시작 단계에서 `FileNotFoundError`로 멈춥니다.
 
 </details>
 
@@ -190,69 +223,6 @@ AMR 2대 · 천장 웹캠 2대 · 3인 팀 · ROKEY 2차 (26.07.01~26.07.14)
 | `src/1_vision_pc3/PC3_ROS_INTERFACE.md` | 비전이 발행하는 토픽 명세 | 정본 |
 | `4_docs/RUN_PC3.md`, `PC4_SETUP.md`, `FOR_AMR_TEAM.md` | PC별 실행 절차 (원래 실행 PC 경로 기준) | 참고 이력 |
 | `src/fp_amr_fsm/README.md` | 리팩터 시도판 설명 (robot2·robot6) | 참고 이력 |
-
-## 환경 · 장비
-
-<details>
-<summary>OS·RMW, 장비 설정, PC 배치, 보정 도구</summary>
-
-- Ubuntu 22.04, ROS 2 Humble, Python 3. 비전 PC에서는 YOLO 추론을 돌립니다(GPU 필요 여부는 확인하지 않았습니다).
-- RMW는 `rmw_fastrtps_cpp`, `ROS_DOMAIN_ID=6`이고, 로봇 2대를 Discovery Server로 묶습니다.
-
-| 장비 | 설정 |
-|---|---|
-| TurtleBot4 ×2 | namespace `robot2`, `robot9`. Discovery Server를 로봇마다 하나씩 둡니다(문자열 위치 2·9, 서버 설정과는 대조 전. `start.sh` 주석엔 robot9 자리가 6) |
-| 천장 웹캠 ×2 | cam0 = "Web Camera", cam1 = "USB Composite"(Jieli). `start.sh`는 `v4l2-ctl` 이름으로 찾습니다 |
-| 비전 PC | 감지, `fleet_fsm`, bridge, rosbridge, 웹 서빙을 맡습니다 |
-| AMR PC | 로봇별 localization, nav2, `amr_patrol_emer_helmet`을 맡습니다 |
-
-PC 배치 문서는 둘입니다.
-- `4_docs/RUN_PC3.md`: PC 한 대로 전부 돌리는 검증용 배치입니다.
-- `4_docs/FOR_AMR_TEAM.md`: 비전 PC와 AMR PC로 나누는 배치입니다.
-
-**보정**: `src/1_vision_pc3/calibration/`의 `camN_to_map.npz`(호모그래피)·`camN_z_calib.npz`(3×4 P)·`entry_roi.json`은 카메라 위치와 맵(`final_project.yaml`)에 묶여 있습니다. 카메라를 옮기거나 맵을 다시 만들면 `src/3_calibration_tools/`로 다시 만들어야 합니다(번호가 곧 작업 순서).
-
-| 스크립트 | 하는 일 |
-|---|---|
-| `00_capture_ref.py` · `01_dual_camera_capture.py` | 기준 프레임을 촬영합니다 |
-| `02_make_homography_pairwise.py` | 픽셀↔map 대응점으로 `camN_to_map.npz`를 만듭니다 |
-| `03` · `04` | 호모그래피를 눈으로 검증합니다 |
-| `05_guided_…` / `05_auto_single_camera_capture.py` | 높이별 대응점을 수집합니다 |
-| `08_z_height_calibration_test.py` | 3×4 P를 구해 `camN_z_calib.npz`를 만듭니다 |
-
-</details>
-
-## 저장소 구성
-
-<details>
-<summary>디렉터리 트리, 저장소에 없는 것(모델 가중치 등)</summary>
-
-```
-.
-├── src/
-│   ├── 1_vision_pc3/          # 비전 감지 (단독 Python) + calibration/ + 맵
-│   ├── 2_ros2_packages/       # 현재 ROS 2 패키지: fp_amr_fsm, amr_aruco, sqlite3db
-│   ├── 3_calibration_tools/   # 호모그래피·Z캘리브 제작 도구 + 판정 개발 이력
-│   ├── fp_amr_fsm/            # 이력: 관제 리팩터 시도 (같은 패키지명!)
-│   ├── fp_amr_vision/         # 이력: 구 패키지 + ArUco 마커 이미지
-│   └── turtlebot4*, m-explore-ros2   # upstream
-├── map/                       # final_project 맵 + fleet_monitor.html 사본
-├── 4_docs/                    # 실행 절차서 (RUN_PC3, PC4_SETUP, FOR_AMR_TEAM)
-└── start.sh                   # 비전 PC 일괄 기동 스크립트 (원래 실행 PC 경로 기준, 한계 참조)
-```
-
-**저장소에 없는 것**
-
-| 항목 | 받는 법 |
-|---|---|
-| 모델 가중치 `*.pt` (`.gitignore`로 제외) | 아래 두 줄 참고 |
-| `fire_db.db` | `create_db`가 만듭니다 |
-| `camera_frames/` | 실행 중에 생깁니다 |
-
-- `yolo11s-pose.pt`: ultralytics 공개 가중치입니다. 첫 로드 때 자동으로 내려받을 수 있습니다(설치 3단계).
-- `yolo_experiments/best.pt`: **미포함입니다(팀이 학습한 helmet 모델).** 없으면 감지 프로그램이 시작 단계에서 `FileNotFoundError`로 멈춥니다.
-
-</details>
 
 ## 설치
 
