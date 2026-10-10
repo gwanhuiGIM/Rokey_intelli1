@@ -11,31 +11,25 @@
 
 > **핵심 설계**: 토픽을 **관찰(`/safety/*`) → 요청(`/alert/*`) → 명령(`/robotN/*`)** 3계층으로 나눴습니다. 카메라 쪽은 로봇을 모르고, 로봇 쪽은 카메라를 모릅니다. 로봇 선정은 `fleet_fsm` 한 곳에서만 하므로, 웹 버튼으로 넣은 요청도 감지 요청과 같은 경로로 처리됩니다.
 
-```
-                    ┌──────────── 비전 (src/1_vision_pc3) ────────────┐
-   웹캠 cam0 ──┐    │  YOLO11-pose + 안전모 검출(best.pt)              │
-   웹캠 cam1 ──┴───▶│  호모그래피 + Z캘리브 → map 좌표                 │
-                    │  쓰러짐 / 안전모 / 침입 판정                      │
-                    └───────────────┬─────────────────────────────────┘
-                                    │ /safety/*   (관찰, PoseStamped·String)
-                                    ▼
-                          safety_alert_bridge      (응급·안전모만 변환)
-                                    │ /alert/*    (요청, JSON String)  ◀── 웹 버튼
-                                    ▼
-                    ┌──────────── 관제 fleet_fsm ─────────────────────┐
-                    │  후보별 제외 사유 판정 → 최근접 선정 · 큐 관리    │
-                    │  상황: NORMAL ↔ EMERGENCY                        │
-                    └───────────────┬─────────────────────────────────┘
-                                    │ /robotN/*   (명령, latched JSON)
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-      amr_patrol_emer_helmet (robot2)   amr_patrol_emer_helmet (robot9)
-      Nav2 주행 · 순찰 · 도킹                        ┆ 소화기 지점 도착
-                                                    ┆ aruco_scan_enable (연결 미완성, 한계 참조)
-                                                    ▼
-      aruco_detect (OAK-D) ──/robotN/aruco/detection/ids──▶ sqlite3db db_update
-                       ◀──────── /robotN/aruco_check_done ──────────┘   │
-                                                              Flask app (점검 현황)
+```mermaid
+flowchart TB
+    C0["웹캠 cam0"] --> VIS
+    C1["웹캠 cam1"] --> VIS
+    subgraph VIS["비전 (src/1_vision_pc3)"]
+        V["YOLO11-pose + 안전모 검출(best.pt)<br/>호모그래피 + Z캘리브 → map 좌표<br/>쓰러짐 / 안전모 / 침입 판정"]
+    end
+    VIS -->|"/safety/* (관찰, PoseStamped·String)"| SAB["safety_alert_bridge<br/>(응급·안전모만 변환)"]
+    WEBBTN["웹 버튼"] -->|"/alert/*"| FSM
+    SAB -->|"/alert/* (요청, JSON String)"| FSM
+    subgraph FSM["관제 fleet_fsm"]
+        F["후보별 제외 사유 판정 → 최근접 선정 · 큐 관리<br/>상황: NORMAL ↔ EMERGENCY"]
+    end
+    FSM -->|"/robotN/* (명령, latched JSON)"| R2["amr_patrol_emer_helmet (robot2)<br/>Nav2 주행 · 순찰 · 도킹"]
+    FSM -->|"/robotN/* (명령, latched JSON)"| R9["amr_patrol_emer_helmet (robot9)"]
+    R9 -.->|"소화기 지점 도착 → aruco_scan_enable<br/>(연결 미완성, 한계 참조)"| AR["aruco_detect (OAK-D)"]
+    AR -->|"/robotN/aruco/detection/ids"| DBU["sqlite3db db_update"]
+    DBU -->|"/robotN/aruco_check_done"| AR
+    DBU --> FL["Flask app (점검 현황)"]
 ```
 
 ## 목차
