@@ -50,7 +50,7 @@ _주제별 바로가기입니다. 본문 배치 순서와 다를 수 있습니�
 
 | 장비 | 설정 |
 |---|---|
-| TurtleBot4 ×2 | namespace `robot2`, `robot9`. Discovery Server를 로봇마다 하나씩 둡니다(문자열 위치 2·9, 서버 설정과는 대조 전. `start.sh` 주석엔 robot9 자리가 6) |
+| TurtleBot4 ×2 | namespace `robot2`, `robot9`. Discovery Server를 로봇마다 하나씩 둡니다(문자열 위치 2·9, 서버 설정과는 대조 전. [`start.sh`](start.sh) 주석엔 robot9 자리가 6) |
 | 천장 웹캠 ×2 | cam0 = "Web Camera", cam1 = "USB Composite"(Jieli). `start.sh`는 `v4l2-ctl` 이름으로 찾습니다 |
 | 비전 PC | 감지, `fleet_fsm`, bridge, rosbridge, 웹 서빙을 맡습니다 |
 | AMR PC | 로봇별 localization, nav2, `amr_patrol_emer_helmet`을 맡습니다 |
@@ -63,15 +63,25 @@ PC 배치 문서는 둘입니다.
 
 | 스크립트 | 하는 일 |
 |---|---|
-| `00_capture_ref.py` · `01_dual_camera_capture.py` | 기준 프레임을 촬영합니다 |
-| `02_make_homography_pairwise.py` | 픽셀↔map 대응점으로 `camN_to_map.npz`를 만듭니다 |
+| [`00_capture_ref.py`](src/3_calibration_tools/00_capture_ref.py) · [`01_dual_camera_capture.py`](src/3_calibration_tools/01_dual_camera_capture.py) | 기준 프레임을 촬영합니다 |
+| [`02_make_homography_pairwise.py`](src/3_calibration_tools/02_make_homography_pairwise.py) | 픽셀↔map 대응점으로 `camN_to_map.npz`를 만듭니다 |
 | `03` · `04` | 호모그래피를 눈으로 검증합니다 |
-| `05_guided_…` / `05_auto_single_camera_capture.py` | 높이별 대응점을 수집합니다 |
-| `08_z_height_calibration_test.py` | 3×4 P를 구해 `camN_z_calib.npz`를 만듭니다 |
+| `05_guided_…` / [`05_auto_single_camera_capture.py`](src/3_calibration_tools/05_auto_single_camera_capture.py) | 높이별 대응점을 수집합니다 |
+| [`08_z_height_calibration_test.py`](src/3_calibration_tools/08_z_height_calibration_test.py) | 3×4 P를 구해 `camN_z_calib.npz`를 만듭니다 |
 
 </details>
 
 ## 저장소 구성
+
+**핵심 코드 바로가기**
+
+| 파일 | 하는 일 | 설명 위치 |
+|---|---|---|
+| ⭐ **[`fp_amr_fsm/fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py)** | 관제: 로봇 상태 추적, 출동 로봇 선정(제외 사유·최근접), 응급/안전모/순찰 큐 관리 | [우선순위](#우선순위) |
+| **[`fp_amr_fsm/amr_patrol_emer_helmet.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py)** | 로봇 실행부: Nav2 순찰·출동·도킹, 응급>안전모>순찰 선점, 오래된 명령 폐기 | [시스템 구조](#시스템-구조) |
+| **[`safety_lib/safety_logic.py`](src/1_vision_pc3/safety_lib/safety_logic.py)** | 쓰러짐/안전모 판정, 트랙별 상태 | [시스템 구조](#시스템-구조) |
+| **[`safety_lib/global_fusion.py`](src/1_vision_pc3/safety_lib/global_fusion.py)** | 두 카메라에 잡힌 같은 인물을 하나로 묶음(global_id) | [시스템 구조](#시스템-구조) |
+| **[`safety_lib/ros_bridge.py`](src/1_vision_pc3/safety_lib/ros_bridge.py)** | 비전 결과를 `/safety/*` 토픽으로 발행 | [토픽 계약](#토픽-계약) |
 
 <details>
 <summary>디렉터리 트리, 저장소에 없는 것(모델 가중치 등)</summary>
@@ -79,8 +89,8 @@ PC 배치 문서는 둘입니다.
 ```
 .
 ├── src/
-│   ├── 1_vision_pc3/          # 비전 감지 (단독 Python) + calibration/ + 맵
-│   ├── 2_ros2_packages/       # 현재 ROS 2 패키지: fp_amr_fsm, amr_aruco, sqlite3db
+│   ├── 1_vision_pc3/          # ★ 비전 감지 (단독 Python) + calibration/ + 맵
+│   ├── 2_ros2_packages/       # ★ 현재 ROS 2 패키지: fp_amr_fsm, amr_aruco, sqlite3db
 │   ├── 3_calibration_tools/   # 호모그래피·Z캘리브 제작 도구 + 판정 개발 이력
 │   ├── fp_amr_fsm/            # 이력: 관제 리팩터 시도 (같은 패키지명!)
 │   ├── fp_amr_vision/         # 이력: 구 패키지 + ArUco 마커 이미지
@@ -88,6 +98,7 @@ PC 배치 문서는 둘입니다.
 ├── map/                       # final_project 맵 + fleet_monitor.html 사본
 ├── 4_docs/                    # 실행 절차서 (RUN_PC3, PC4_SETUP, FOR_AMR_TEAM)
 └── start.sh                   # 비전 PC 일괄 기동 스크립트 (원래 실행 PC 경로 기준, 한계 참조)
+# ★ = 위 "핵심 코드 바로가기" 파일이 있는 곳
 ```
 
 **저장소에 없는 것**
@@ -111,7 +122,7 @@ PC 배치 문서는 둘입니다.
 | 쓰러짐 출동 | 상황을 `EMERGENCY`로 바꾸고, 사람에게서 0.7 m 떨어진 접근점으로 로봇을 출동시킵니다. 이때 배터리는 보지 않습니다 | `safety_alert_bridge` → `fleet_fsm` → `amr_patrol_emer_helmet` |
 | 안전모 배달 | 대기 중이거나 순찰 중인 로봇을 보내 안전모를 배달합니다. 배달 후에는 도킹하지 않고 끊긴 지점부터 순찰을 이어 갑니다 | 위와 같음 |
 | 순찰 · 소화기 점검 | 웨이포인트를 순찰하고, 소화기 지점에서는 ArUco 대조가 끝날 때까지 기다립니다. 소화기 모듈은 인식한 마커 ID로 점검 결과와 스냅샷을 DB에 기록합니다(실행부와의 연결은 [한계](#한계--미완성)) | `amr_patrol_emer_helmet`, `aruco_detect`, `db_update` |
-| 관제 · 점검 웹 | 지도 위에 로봇과 사람 위치, 로봇별 선정 근거(거리·배터리·제외 사유)를 보여 주고 이벤트를 주입할 수 있습니다. 소화기 점검 결과와 스냅샷은 Flask 웹에서 조회합니다 | `fleet_monitor.html`(rosbridge), `sqlite3db`의 `app` |
+| 관제 · 점검 웹 | 지도 위에 로봇과 사람 위치, 로봇별 선정 근거(거리·배터리·제외 사유)를 보여 주고 이벤트를 주입할 수 있습니다. 소화기 점검 결과와 스냅샷은 Flask 웹에서 조회합니다 | [`fleet_monitor.html`](src/2_ros2_packages/fp_amr_fsm/web/fleet_monitor.html)(rosbridge), `sqlite3db`의 `app` |
 
 <p align="center"><img src="images/fleet_monitor.jpg" alt="fleet_monitor.html 관제 화면: 지도 위 로봇과 사람 위치, 로봇별 선정 근거" width="800"></p>
 <p align="center"><sub>관제 웹 <code>fleet_monitor.html</code> — 지도 위 로봇·사람 위치, 로봇별 선정 근거(거리·배터리), 이벤트 주입</sub></p>
@@ -128,15 +139,15 @@ PC 배치 문서는 둘입니다.
 <summary>모듈별 파일·노드, 우선순위, 토픽 계약, 현재 경로와 이력</summary>
 
 **비전** — `src/1_vision_pc3/`는 ROS 패키지가 아닌 단독 Python 프로그램입니다.
-- 진입점은 `12_dual_camera_entry_yolo_tracking_modular.py`이고, 판정 로직은 `safety_lib/`에 있습니다.
+- 진입점은 [`12_dual_camera_entry_yolo_tracking_modular.py`](src/1_vision_pc3/12_dual_camera_entry_yolo_tracking_modular.py)이고, 판정 로직은 `safety_lib/`에 있습니다.
 
 | 파일 | 하는 일 |
 |---|---|
-| `safety_lib/vision_core.py` | 카메라 루프, YOLO 추론(pose 모델은 사람·키포인트, `best.pt`는 helmet bbox만), 좌표 변환 |
-| `safety_lib/safety_logic.py` | 쓰러짐/안전모 판정, 트랙별 상태 |
-| `safety_lib/base_utils.py` | 호모그래피, Z캘리브(3×4 P 행렬), 키포인트 유틸 |
-| `safety_lib/global_fusion.py` | 두 카메라에 잡힌 같은 인물을 하나로 묶음 (global_id) |
-| `safety_lib/ros_bridge.py` | `/safety/*` 발행 (아래 토픽 표) |
+| [`safety_lib/vision_core.py`](src/1_vision_pc3/safety_lib/vision_core.py) | 카메라 루프, YOLO 추론(pose 모델은 사람·키포인트, `best.pt`는 helmet bbox만), 좌표 변환 |
+| [`safety_lib/safety_logic.py`](src/1_vision_pc3/safety_lib/safety_logic.py) | 쓰러짐/안전모 판정, 트랙별 상태 |
+| [`safety_lib/base_utils.py`](src/1_vision_pc3/safety_lib/base_utils.py) | 호모그래피, Z캘리브(3×4 P 행렬), 키포인트 유틸 |
+| [`safety_lib/global_fusion.py`](src/1_vision_pc3/safety_lib/global_fusion.py) | 두 카메라에 잡힌 같은 인물을 하나로 묶음 (global_id) |
+| [`safety_lib/ros_bridge.py`](src/1_vision_pc3/safety_lib/ros_bridge.py) | `/safety/*` 발행 (아래 토픽 표) |
 
 **관제** — `src/2_ros2_packages/fp_amr_fsm`
 
@@ -151,7 +162,7 @@ PC 배치 문서는 둘입니다.
 
 **실행부** — `src/2_ros2_packages/fp_amr_fsm`의 `amr_patrol_emer_helmet`
 - 로봇마다 1개씩 띄우며, `TurtleBot4Navigator`(Nav2)로 이동합니다.
-- payload의 `timestamp`가 30초 넘게 지난 명령은 버립니다(`amr_patrol_emer_helmet.py:78`).
+- payload의 `timestamp`가 30초 넘게 지난 명령은 버립니다([`amr_patrol_emer_helmet.py:78`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py)).
 - 현장 대기는 최대 5분입니다(`:144`).
 
 **소화기 점검** — `src/2_ros2_packages/amr_aruco`의 `aruco_detect`와 `src/2_ros2_packages/sqlite3db`
@@ -168,7 +179,7 @@ PC 배치 문서는 둘입니다.
 
 > **응급(EMERGENCY) > 안전모(HELMET) > 순찰**
 
-- 응급은 배터리·충전 상태를 보지 않습니다. 물리적으로 갈 수 없는 상태(`OFFLINE`, `NO_NAV2`, 측위 미실행, 위치 미수신)만 제외합니다(`fleet_fsm.py:1097-1123`).
+- 응급은 배터리·충전 상태를 보지 않습니다. 물리적으로 갈 수 없는 상태(`OFFLINE`, `NO_NAV2`, 측위 미실행, 위치 미수신)만 제외합니다([`fleet_fsm.py:1097-1123`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py)).
 - 안전모는 순찰을 선점합니다. 배달이 끝나면 같은 웨이포인트 index부터 순찰을 재개합니다.
 - 요청에 `robot_id`를 지정했는데 그 로봇이 갈 수 없는 경우:
   - 응급이 아니면 요청을 한 번 경고하고 버립니다.
@@ -192,9 +203,9 @@ PC 배치 문서는 둘입니다.
 |---|---|
 | `src/1_vision_pc3/`, `src/2_ros2_packages/*` | **현재 경로**입니다 (robot2·robot9) |
 | `src/2_ros2_packages/amr_aruco`의 `amr_patrol_emer_helmet` | 실행부를 모듈로 나눈 판입니다. ArUco 게이트 연동은 있지만, `fp_amr_fsm`판의 최신 수정(`helmet_clear`, 현장 5분 상한 등)은 빠져 있습니다 |
-| `src/fp_amr_fsm/` | 관제 리팩터 시도입니다 (`robot_context.py`·`map_view.py`·launch·params로 분리). 기본 robots가 `robot2`·`robot6`이고 실행부가 없습니다 |
+| `src/fp_amr_fsm/` | 관제 리팩터 시도입니다 ([`robot_context.py`](src/fp_amr_fsm/fp_amr_fsm/robot_context.py)·[`map_view.py`](src/fp_amr_fsm/fp_amr_fsm/map_view.py)·launch·params로 분리). 기본 robots가 `robot2`·`robot6`이고 실행부가 없습니다 |
 | `src/fp_amr_vision/` | 구 패키지명 시절의 이력입니다 |
-| `src/3_calibration_tools/06~12`, `debug_posture.py` 등 | 판정 알고리즘 개발 이력입니다 (bbox → z → pose) |
+| `src/3_calibration_tools/06~12`, [`debug_posture.py`](src/3_calibration_tools/debug_posture.py) 등 | 판정 알고리즘 개발 이력입니다 (bbox → z → pose) |
 | `src/turtlebot4*`, `src/m-explore-ros2` | upstream 코드입니다 |
 
 </details>
@@ -202,7 +213,7 @@ PC 배치 문서는 둘입니다.
 ## 한계 · 미완성
 
 - **무단침입은 출동으로 이어지지 않습니다.** 비전이 `/safety/unauthorized_*`를 발행하지만 `safety_alert_bridge`·`fleet_fsm`·웹 어디서도 구독하지 않습니다.
-- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부(`patrol_navigator.py:71`)만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
+- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부([`patrol_navigator.py:71`](src/2_ros2_packages/amr_aruco/amr_aruco/patrol_navigator.py))만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
 - **`start.sh`·`4_docs/`는 원래 실행 PC 기준이라 그대로 돌지 않습니다.** 경로(`$HOME/turtlebot4_ws/final_project/{detection_final, fp_amr_fsm_connec_vision}`)·로봇 IP(`192.168.107.x`)·NIC(`wlo1`)가 하드코딩돼 있습니다(`start.sh:15,25,127,130,141`).
 - **helmet 모델 `best.pt`는 저장소에 없습니다.** 없으면 감지 프로그램이 시작 단계에서 멈춥니다([저장소 구성](#저장소-구성)).
 - **`src/` 전체를 `colcon build`하면 깨집니다.** `fp_amr_fsm` 패키지가 두 곳에 있습니다([설치](#설치)).
