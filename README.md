@@ -162,7 +162,7 @@ PC 배치 문서는 둘입니다.
 
 **실행부** — `src/2_ros2_packages/fp_amr_fsm`의 `amr_patrol_emer_helmet`
 - 로봇마다 1개씩 띄우며, `TurtleBot4Navigator`(Nav2)로 이동합니다.
-- payload의 `timestamp`가 30초 넘게 지난 명령은 버립니다([`amr_patrol_emer_helmet.py:78`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py)).
+- payload의 `timestamp`가 30초 넘게 지난 명령은 버립니다([`amr_patrol_emer_helmet.py:78`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L78)).
 - 현장 대기는 최대 5분입니다(`:144`).
 
 **소화기 점검** — `src/2_ros2_packages/amr_aruco`의 `aruco_detect`와 `src/2_ros2_packages/sqlite3db`
@@ -179,7 +179,7 @@ PC 배치 문서는 둘입니다.
 
 > **응급(EMERGENCY) > 안전모(HELMET) > 순찰**
 
-- 응급은 배터리·충전 상태를 보지 않습니다. 물리적으로 갈 수 없는 상태(`OFFLINE`, `NO_NAV2`, 측위 미실행, 위치 미수신)만 제외합니다([`fleet_fsm.py:1097-1123`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py)).
+- 응급은 배터리·충전 상태를 보지 않습니다. 물리적으로 갈 수 없는 상태(`OFFLINE`, `NO_NAV2`, 측위 미실행, 위치 미수신)만 제외합니다([`fleet_fsm.py:1097-1123`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1097-L1123)).
 - 안전모는 순찰을 선점합니다. 배달이 끝나면 같은 웨이포인트 index부터 순찰을 재개합니다.
 - 요청에 `robot_id`를 지정했는데 그 로봇이 갈 수 없는 경우:
   - 응급이 아니면 요청을 한 번 경고하고 버립니다.
@@ -213,7 +213,7 @@ PC 배치 문서는 둘입니다.
 ## 한계 · 미완성
 
 - **무단침입은 출동으로 이어지지 않습니다.** 비전이 `/safety/unauthorized_*`를 발행하지만 `safety_alert_bridge`·`fleet_fsm`·웹 어디서도 구독하지 않습니다.
-- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부([`patrol_navigator.py:71`](src/2_ros2_packages/amr_aruco/amr_aruco/patrol_navigator.py))만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
+- **현재 경로에서는 소화기 점검 게이트가 연결되지 않습니다.** `aruco_detect`를 켜는 `aruco_scan_enable`은 `amr_aruco`판 실행부([`patrol_navigator.py:71`](src/2_ros2_packages/amr_aruco/amr_aruco/patrol_navigator.py#L71))만 발행해서, `fp_amr_fsm`판 실행부는 소화기 지점에서 `aruco_check_done`을 기다리며 서 있습니다(`amr_patrol_emer_helmet.py:533`). 응급·안전모 요청, 저배터리 복귀(`:511-518`), 수동 `aruco_check_done` 발행으로 풀립니다.
 - **`start.sh`·`4_docs/`는 원래 실행 PC 기준이라 그대로 돌지 않습니다.** 경로(`$HOME/turtlebot4_ws/final_project/{detection_final, fp_amr_fsm_connec_vision}`)·로봇 IP(`192.168.107.x`)·NIC(`wlo1`)가 하드코딩돼 있습니다(`start.sh:15,25,127,130,141`).
 - **helmet 모델 `best.pt`는 저장소에 없습니다.** 없으면 감지 프로그램이 시작 단계에서 멈춥니다([저장소 구성](#저장소-구성)).
 - **`src/` 전체를 `colcon build`하면 깨집니다.** `fp_amr_fsm` 패키지가 두 곳에 있습니다([설치](#설치)).
