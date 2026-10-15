@@ -71,19 +71,6 @@ PC 배치 문서는 둘입니다.
 
 ## 저장소 구성
 
-**핵심 코드 바로가기**
-
-| 파일 | 하는 일 | 설명 위치 |
-|---|---|---|
-| ⭐ **[`fp_amr_fsm/fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py)** | 관제: 로봇 상태 추적, 출동 로봇 선정(제외 사유·최근접), 응급/안전모/순찰 큐 관리 | [우선순위](#우선순위) |
-| **[`fp_amr_fsm/amr_patrol_emer_helmet.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py)** | 로봇 실행부: Nav2 순찰·출동·도킹, 응급>안전모>순찰 선점, 오래된 명령 폐기 | [시스템 구조](#시스템-구조) |
-| **[`safety_lib/safety_logic.py`](src/1_vision_pc3/safety_lib/safety_logic.py)** | 쓰러짐/안전모 판정, 트랙별 상태 | [시스템 구조](#시스템-구조) |
-| **[`safety_lib/global_fusion.py`](src/1_vision_pc3/safety_lib/global_fusion.py)** | 두 카메라에 잡힌 같은 인물을 하나로 묶음(global_id) | [시스템 구조](#시스템-구조) |
-| **[`safety_lib/ros_bridge.py`](src/1_vision_pc3/safety_lib/ros_bridge.py)** | 비전 결과를 `/safety/*` 토픽으로 발행 | [토픽 계약](#토픽-계약) |
-
-<details>
-<summary>디렉터리 트리, 저장소에 없는 것(모델 가중치 등)</summary>
-
 ```
 .
 ├── src/
@@ -96,8 +83,24 @@ PC 배치 문서는 둘입니다.
 ├── map/                       # final_project 맵 + fleet_monitor.html 사본
 ├── 4_docs/                    # 실행 절차서 (RUN_PC3, PC4_SETUP, FOR_AMR_TEAM)
 └── start.sh                   # 비전 PC 일괄 기동 스크립트 (원래 실행 PC 경로 기준, 한계 참조)
-# ★ = 위 "핵심 코드 바로가기" 파일이 있는 곳
+# ★ = 아래 "핵심 코드 바로가기" 파일이 있는 곳
 ```
+
+<details>
+<summary>핵심 코드 바로가기</summary>
+
+| 파일 | 하는 일 | 설명 위치 |
+|---|---|---|
+| ⭐ **[`fp_amr_fsm/fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py)** | 관제: 로봇 상태 추적, 출동 로봇 선정(제외 사유·최근접), 응급/안전모/순찰 큐 관리 | [우선순위](#우선순위) |
+| **[`fp_amr_fsm/amr_patrol_emer_helmet.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py)** | 로봇 실행부: Nav2 순찰·출동·도킹, 응급>안전모>순찰 선점, 오래된 명령 폐기 | [시스템 구조](#시스템-구조) |
+| **[`safety_lib/safety_logic.py`](src/1_vision_pc3/safety_lib/safety_logic.py)** | 쓰러짐/안전모 판정, 트랙별 상태 | [시스템 구조](#시스템-구조) |
+| **[`safety_lib/global_fusion.py`](src/1_vision_pc3/safety_lib/global_fusion.py)** | 두 카메라에 잡힌 같은 인물을 하나로 묶음(global_id) | [시스템 구조](#시스템-구조) |
+| **[`safety_lib/ros_bridge.py`](src/1_vision_pc3/safety_lib/ros_bridge.py)** | 비전 결과를 `/safety/*` 토픽으로 발행 | [토픽 계약](#토픽-계약) |
+
+</details>
+
+<details>
+<summary>저장소에 없는 것(모델 가중치 등)</summary>
 
 **저장소에 없는 것**
 
