@@ -207,7 +207,7 @@ PC 배치 문서는 둘입니다.
 | `amr_aruco` | [`amr_aruco.launch.py`](src/2_ros2_packages/amr_aruco/launch/amr_aruco.launch.py): 실행부와 `aruco_detect`를 같은 namespace에 띄움, `/tf` 리맵 | [`amr_aruco_params.yaml`](src/2_ros2_packages/amr_aruco/config/amr_aruco_params.yaml): 배터리 복귀 임계값, 도킹 좌표·접근 지점·방향, 안전모 대기·전달 시간, ArUco 대기·타임아웃, 순찰 지점 파일, ArUco 사전 | `namespace:=`(기본 `robot2`), `params_file:=` |
 | `src/fp_amr_fsm` (리팩터판) | [`fleet.launch.py`](src/fp_amr_fsm/launch/fleet.launch.py): `fleet_fsm` + `safety_alert_bridge` | [`fleet_params.yaml`](src/fp_amr_fsm/config/fleet_params.yaml): 관제 대상 로봇, 지도 파일, 배터리 임계값(복귀·재개·배정 최소), 오프라인 판정 시간, 재시도 횟수 등 | `params_file:=` |
 
-- 두 패키지 모두 `setup.py`의 `data_files`로 `launch/`·`config/`를 share에 설치합니다. `--symlink-install`로 빌드하면 설치된 yaml이 소스 파일을 가리키므로, 이미 있는 yaml은 고치고 다시 launch하면 됩니다(새 yaml 파일을 추가하면 다시 빌드). 다른 위치의 yaml은 `params_file:=`로 통째로 바꿔 넘깁니다.
+- 두 패키지 모두 `setup.py`의 `data_files`로 `launch/`·`config/`를 share에 설치합니다. `--symlink-install`로 빌드하면 설치된 yaml이 소스 파일을 가리키므로, 이미 있는 yaml은 고치고 다시 launch하면 됩니다(새 yaml 파일을 추가하면 다시 빌드). ⚠️ README 정리 때 이 저장소 패키지로 다시 빌드해 확인하지는 않았습니다. 다른 위치의 yaml은 `params_file:=`로 통째로 바꿔 넘깁니다.
 - 토픽 이름과 QoS는 상대 노드와 맞춰야 하는 약속이라 일부러 파라미터로 빼지 않았습니다. `amr_aruco/common.py`의 상수로 두고, 바꿔야 하면 리맵(`-r`)을 씁니다.
 - 각 값 옆에는 그 값을 둔 이유를 주석으로 적었습니다(예: 도킹 좌표로 곧장 가면 코스트맵상 도킹 스테이션과 겹쳐 경로 계획이 실패하므로 접근 지점을 따로 둠).
 - 현재 경로의 `fp_amr_fsm`판 노드는 같은 값을 코드 상수로 둡니다([한계](#한계--미완성)).
@@ -344,7 +344,7 @@ cd src/1_vision_pc3 && python3 12_dual_camera_entry_yolo_tracking_modular.py --c
 ## 검증
 
 - 자동 테스트는 각 패키지의 `test_copyright`·`test_flake8`·`test_pep257`(스타일 린트)뿐입니다. 판정·선정 로직의 단위 테스트는 없습니다(README 정리 때 재실행하지 않음).
-- launch·yaml 분리판(`amr_aruco`, `src/fp_amr_fsm`)은 팀 실기 테스트에서 yaml 값을 고쳐 다시 띄우는 방식으로 썼습니다. 실행 로그는 저장소에 없습니다.
+- launch·yaml 분리판(`amr_aruco`, `src/fp_amr_fsm`)은 기존 launch에 있던 실기 튜닝 파라미터를 yaml로 옮겨 구현했고, 팀 실기 테스트에 썼습니다. 실행 로그는 저장소에 없습니다.
 - 실기 성능 검증은 하지 않았습니다.
 
 ## License
