@@ -12,33 +12,37 @@
 <details>
 <summary>시스템 구성도</summary>
 
+칸은 하는 일, 화살표는 주고받는 내용입니다. 노드·토픽 이름과 코드 위치는 그림 아래 표에 있습니다. 점선은 코드에 있지만 연결이 완성되지 않은 부분입니다.
+
 ```mermaid
 flowchart TB
     subgraph DETECT["감지 · 관제"]
         direction LR
-        C0["웹캠 cam0"] --> VIS
-        C1["웹캠 cam1"] --> VIS
-        subgraph VIS["비전 (src/1_vision_pc3)"]
-            V["YOLO11-pose + 안전모 검출(best.pt)<br/>호모그래피 + Z캘리브 → map 좌표<br/>쓰러짐 / 안전모 / 침입 판정"]
-        end
-        VIS -->|"/safety/* (관찰, PoseStamped·String)"| SAB["safety_alert_bridge<br/>(응급·안전모만 변환)"]
-        WEBBTN["웹 버튼"] -->|"/alert/*"| FSM
-        SAB -->|"/alert/* (요청, JSON String)"| FSM
-        subgraph FSM["관제 fleet_fsm"]
-            F["후보별 제외 사유 판정 → 최근접 선정 · 큐 관리<br/>상황: NORMAL ↔ EMERGENCY"]
-        end
+        CAM["웹캠 2대"] -->|"영상"| VIS["사람 감지 · 판정<br/>쓰러짐 · 안전모 · 침입"]
+        VIS -->|"쓰러짐 · 안전모 위치"| SAB["출동 요청으로 변환<br/>(응급 · 안전모만)"]
+        WEB["관제 웹 버튼"] -->|"출동 · 순찰 요청"| FSM
+        SAB -->|"출동 요청"| FSM["출동 로봇 선정<br/>제외 사유 판정 → 최근접 · 큐 관리"]
     end
-    DETECT -->|"/robotN/* (명령, latched JSON)<br/>fleet_fsm → robot2 · robot9"| FIELD
+    DETECT -->|"선정된 로봇에게만 출동 · 순찰 명령"| FIELD
     subgraph FIELD["출동 · 소화기 점검"]
         direction LR
-        R2["amr_patrol_emer_helmet (robot2)<br/>Nav2 주행 · 순찰 · 도킹"]
-        R9["amr_patrol_emer_helmet (robot9)"]
-        R9 -.->|"소화기 지점 도착 → aruco_scan_enable<br/>(연결 미완성, 한계 참조)"| AR["aruco_detect (OAK-D)"]
-        AR -->|"/robotN/aruco/detection/ids"| DBU["sqlite3db db_update"]
-        DBU -->|"/robotN/aruco_check_done"| AR
-        DBU --> FL["Flask app (점검 현황)"]
+        EXE["주행 실행 (robot2 · robot9 각 1개)<br/>순찰 · 출동 · 도킹"] -.->|"소화기 지점 도착 시 스캔 켜기<br/>(연결 미완성, 한계 참조)"| AR["소화기 마커 인식 (OAK-D)"]
+        AR -->|"마커 ID"| DBU["점검 결과 기록"]
+        DBU -->|"점검 완료"| AR
+        DBU --> FL["점검 현황 웹"]
     end
 ```
+
+| 칸 | 코드 | 주고받는 토픽 (전체 목록은 [토픽 계약](#토픽-계약)) |
+|---|---|---|
+| 사람 감지 · 판정 | [`12_dual_camera_entry_yolo_tracking_modular.py`](src/1_vision_pc3/12_dual_camera_entry_yolo_tracking_modular.py), 판정 [`safety_lib/`](src/1_vision_pc3/safety_lib) | 발행 `/safety/*` ([`safety_lib/ros_bridge.py`](src/1_vision_pc3/safety_lib/ros_bridge.py)) |
+| 출동 요청으로 변환 | [`safety_alert_bridge.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/safety_alert_bridge.py) | 구독 `/safety/{emergency,helmet}_{goal,state}` · 발행 `/alert/*` |
+| 관제 웹 버튼 | [`web/fleet_monitor.html`](src/2_ros2_packages/fp_amr_fsm/web/fleet_monitor.html) (rosbridge) | 발행 `/alert/*` |
+| 출동 로봇 선정 | [`fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py) | 구독 `/alert/*`, 로봇별 `battery_state` `dock_status` `amcl_pose` `amr_status` · 발행 `/robotN/{emergency_goal,helmet_goal,patrol_cmd,*_clear}` `/fleet/status` |
+| 주행 실행 | [`amr_patrol_emer_helmet.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py) | 구독 `/robotN/*` 명령 · 발행 `/robotN/amr_status` · Nav2(`TurtleBot4Navigator`) |
+| 소화기 마커 인식 | [`aruco_detect.py`](src/2_ros2_packages/amr_aruco/amr_aruco/aruco_detect.py) | 구독 `aruco_scan_enable` · 발행 `aruco/detection/ids` |
+| 점검 결과 기록 | [`db_update.py`](src/2_ros2_packages/sqlite3db/sqlite3db/db_update.py) | 구독 `/robotN/aruco/detection/ids` · 발행 `/robotN/aruco_check_done` |
+| 점검 현황 웹 | [`app.py`](src/2_ros2_packages/sqlite3db/sqlite3db/app.py) | Flask `127.0.0.1:5000` |
 
 </details>
 
@@ -147,6 +151,34 @@ PC 배치 문서는 둘입니다.
 <p align="center"><sub>호모그래피 검증 — 왼쪽 cam0 영상, 오른쪽 map의 대응점</sub></p>
 
 ## 시스템 구조
+
+<details>
+<summary>쓰러짐 감지부터 출동까지의 흐름 (sequence)</summary>
+
+응급 한 건이 정상적으로 처리되는 경우만 그렸습니다. 안전모 미착용도 같은 경로로 처리되고, 웹 버튼 요청은 2번부터 같습니다.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant VIS as 사람 감지 · 판정
+    participant SAB as 출동 요청 변환
+    participant FSM as 출동 로봇 선정
+    participant AMR as 주행 실행 (robotN)
+    participant NAV as Nav2
+    VIS->>SAB: 쓰러진 사람 위치
+    SAB->>FSM: 응급 출동 요청 (JSON)
+    Note over FSM: 갈 수 없는 로봇 제외 → 가장 가까운 로봇 선정
+    FSM->>AMR: 출동 명령 (사람 앞 0.7 m 접근점 · 바라볼 방향)
+    Note over AMR: 30초 넘게 지난 명령은 버림
+    AMR->>NAV: 도킹 중이면 undock → 접근점으로 이동
+    AMR-->>FSM: 로봇 상태
+    Note over AMR: 도착 후 해제 신호를 최대 5분 기다림
+    VIS->>SAB: 상황 해제
+    SAB->>FSM: 해제 요청
+    FSM->>AMR: 해제 명령 → 출동 종료
+```
+
+</details>
 
 <details>
 <summary>모듈별 파일·노드, 우선순위, 토픽 계약, launch·파라미터 분리, 현재 경로와 이력</summary>
