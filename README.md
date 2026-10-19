@@ -28,7 +28,7 @@ flowchart TB
         direction LR
         EXE["주행 실행 (robot2 · robot9 각 1개)<br/>순찰 · 출동 · 도킹"] -.->|"소화기 지점 도착 시 스캔 켜기<br/>(연결 미완성, 한계 참조)"| AR["소화기 마커 인식 (OAK-D)"]
         AR -->|"마커 ID"| DBU["점검 결과 기록"]
-        DBU -->|"점검 완료"| AR
+        DBU -->|"점검 완료 → 다음 지점으로"| EXE
         DBU --> FL["점검 현황 웹"]
     end
 ```
@@ -39,7 +39,7 @@ flowchart TB
 | 출동 요청으로 변환 | [`safety_alert_bridge.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/safety_alert_bridge.py) | 구독 `/safety/{emergency,helmet}_{goal,state}` · 발행 `/alert/*` |
 | 관제 웹 버튼 | [`web/fleet_monitor.html`](src/2_ros2_packages/fp_amr_fsm/web/fleet_monitor.html) (rosbridge) | 발행 `/alert/*` |
 | 출동 로봇 선정 | [`fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py) | 구독 `/alert/*`, 로봇별 `battery_state` `dock_status` `amcl_pose` `amr_status` · 발행 `/robotN/{emergency_goal,helmet_goal,patrol_cmd,*_clear}` `/fleet/status` |
-| 주행 실행 | [`amr_patrol_emer_helmet.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py) | 구독 `/robotN/*` 명령 · 발행 `/robotN/amr_status` · Nav2(`TurtleBot4Navigator`) |
+| 주행 실행 | [`amr_patrol_emer_helmet.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py) | 구독 `/robotN/*` 명령 `/robotN/aruco_check_done` · 발행 `/robotN/amr_status` · Nav2(`TurtleBot4Navigator`) |
 | 소화기 마커 인식 | [`aruco_detect.py`](src/2_ros2_packages/amr_aruco/amr_aruco/aruco_detect.py) | 구독 `aruco_scan_enable` · 발행 `aruco/detection/ids` |
 | 점검 결과 기록 | [`db_update.py`](src/2_ros2_packages/sqlite3db/sqlite3db/db_update.py) | 구독 `/robotN/aruco/detection/ids` · 발행 `/robotN/aruco_check_done` |
 | 점검 현황 웹 | [`app.py`](src/2_ros2_packages/sqlite3db/sqlite3db/app.py) | Flask `127.0.0.1:5000` |
