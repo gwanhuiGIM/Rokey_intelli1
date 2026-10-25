@@ -38,3 +38,6 @@ docs/
 .env
 .vscode/
 .idea/
+
+# 로컬 전용 분석 기록(사용자 2026-10-25)
+NETWORK_ANALYSIS_*.md
