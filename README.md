@@ -297,7 +297,7 @@ ros2 launch fp_amr_fsm fleet.launch.py params_file:=/path/to/fleet_params.yaml  
 
 - 실기 중 노트북에서 돌리던 localization·Nav2·SLAM이 실행 도중 멈추는 일이 있었습니다. 당시 구성은 위 [환경 · 장비](#환경--장비)의 Fast DDS + Discovery Server입니다. 일정 안에 제공 장비의 통신 설정을 바꿔 시험하기 어려워 프로젝트 기간에는 대응을 적용하지 않았습니다.
 - 부트캠프가 끝난 뒤 공식 문서와 유사 장애 사례를 대조해 원인 후보를 정리했습니다: Discovery·서비스 통신, namespace·TF 충돌, Nav2 Lifecycle 초기화, QoS, Wi-Fi 혼잡·연산 자원. **원인은 특정하지 않았습니다**(실측 전).
-- 대안으로 로봇 내부 DDS와 PC 간 통신을 나누는 CycloneDDS + Zenoh 구성을 검토했고, Simple Discovery / Fast DDS Discovery Server / CycloneDDS + Zenoh를 같은 조건에서 비교하는 실험을 계획했습니다. 이 저장소의 코드·설정에는 반영하지 않았고 실측도 하지 않았습니다.
+- 대안으로 로봇 내부 DDS와 외부 통신을 나누는 CycloneDDS + Zenoh 구성을 검토했고, Simple Discovery / Fast DDS Discovery Server / CycloneDDS + Zenoh를 같은 조건에서 비교하는 실험을 계획했습니다. 이 저장소의 코드·설정에는 반영하지 않았고 실측도 하지 않았습니다.
 
 </details>
 
