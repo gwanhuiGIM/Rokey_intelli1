@@ -46,6 +46,39 @@ flowchart TB
 
 </details>
 
+## 본인 담당
+
+5인 팀의 팀장으로 **관제 FSM · 출동 배정 정책 · ROS 2 통신 총괄**을 맡았습니다(발표 역할 분담표 기준). 다른 팀원은 웹캠 감지, AMR 제어·ArUco, DB·Flask 웹, Flow chart 리뷰를 나눠 맡았습니다.
+
+> 아래 항목은 제가 설계·디버깅한 로직 단위로 적었고, 파일·패키지 전체를 혼자 작성했다는 뜻이 아닙니다. [무엇을 할 수 있나](#무엇을-할-수-있나) 표의 '담당' 열은 기능별 코드 위치이며 사람 담당과는 관계가 없습니다.
+
+1. **관제 FSM 설계와 디버깅**
+   - 로봇이 원래 발행하는 표준 토픽(`battery_state`·`dock_status`·`amcl_pose`·Nav2 액션 상태)이 들어오는 것을 heartbeat로 삼아, 로봇별 상태(오프라인·대기·출동·저배터리 복귀·충전)를 관리합니다.
+   - 배터리 신호는 오는데 위치 추정이 없는 로봇(`NO_LOCALIZATION`)과 Nav2 노드가 없는 로봇(`NO_NAV2`)을 따로 진단해 출동 후보에서 뺍니다.
+   - 오프라인 판정 대기 시간(`OFFLINE_TIMEOUT`)은 실기 Wi-Fi에서 정상 순찰 로봇이 오프라인으로 깜빡이는 것을 보고 늘려 잡은 값입니다. 늘린 뒤 다시 측정한 기록은 없습니다.
+   - 코드: [`fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py) — 수신 기록 [`mark_alive`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L510-L521), 스택 진단 [`diagnose_stacks`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L940-L976), 오프라인 판정 시간 [`OFFLINE_TIMEOUT`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L320-L327)
+
+2. **출동 배정과 우선순위 선점**
+   - 출동할 수 없는 로봇을 뺀 뒤 사람에게 가장 가까운 로봇을 골라 출동 명령을 보냅니다. 안전모 요청은 바로 움직일 수 있는 대기 로봇을 먼저 고르고, 그중 가까운 로봇을 보냅니다. 우선순위는 응급 > 안전모 > 순찰입니다.
+   - 최종 코드에서 순찰 시작은 관제가 로봇을 골라 명령하고, waypoint 이동과 순찰 중단·재개는 로봇 실행부가 맡습니다. 로봇 실행부는 응급·안전모 신호를 받으면 순찰을 끊고 출동하고, 끝나면 끊긴 waypoint부터 순찰을 이어 갑니다.
+   - 출동 종료는 Nav2 액션 상태 전이로 추론합니다. 새 goal이 이전 goal을 취소하는 중(`CANCELING`)을 '이동 끝'으로 읽어 출동 실패로 오판하고 재배정하던 문제를 찾아, `CANCELING`을 이동 중으로 보도록 고쳤습니다.
+   - 코드: 후보 제외 [`fleet_fsm.py#L1097-L1136`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1097-L1136), 로봇 선정 [`#L1168-L1221`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1168-L1221), 순찰 배정 [`#L1310-L1331`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1310-L1331), 종료 판정 [`fleet_fsm.py#L565-L576`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L565-L576), 순찰 선점 [`amr_patrol_emer_helmet.py#L479-L541`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L479-L541)
+
+3. **메시지 전달 정책(QoS)과 오래된 명령 거르기**
+   - 팀에서 정한 관찰·요청·명령 3계층 토픽 위에서, 메시지 성격에 따라 전달 정책을 나눴습니다. 비전→관제 구간에서 상태 라벨은 마지막 값을 남기고(`RELIABLE`+`TRANSIENT_LOCAL`), 좌표 명령은 남기지 않아 처리가 끝난 옛 좌표가 다시 전달되지 않게 하고(`RELIABLE`+`VOLATILE`), 영상·마커는 손실을 허용합니다(`BEST_EFFORT`).
+   - 관제→로봇 명령은 늦게 뜬 로봇도 받도록 마지막 명령을 남기는 대신, 명령에 발행 시각을 넣고 로봇 쪽에서 오래된 명령을 버리게 했습니다.
+   - 감지 코드(`1_vision_pc3`)는 다른 팀원 담당이고, 아래 문제는 그 코드에서 함께 고쳤습니다. 쓰러진 직후 '대상 없음'이 한 프레임씩 튀어 응급 해제가 바로 발행되던 것을, 해제 방향에만 디바운스를 걸어 '대상 없음'이 이어질 때만 해제를 내리도록 했습니다.
+   - 코드: QoS [`ros_bridge.py#L75-L126`](src/1_vision_pc3/safety_lib/ros_bridge.py#L75-L126), 해제 디바운스 [`ros_bridge.py#L473-L499`](src/1_vision_pc3/safety_lib/ros_bridge.py#L473-L499), 명령 QoS·발행 시각 [`fleet_fsm.py#L142-L154`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L142-L154)·[`#L1271-L1273`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1271-L1273), 오래된 명령 폐기 [`amr_patrol_emer_helmet.py#L385-L403`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L385-L403)
+
+4. **쓰러짐 판정 규칙**
+   - 머리 높이 하나로 판정하던 초기 방식은 사람이 누우면 '머리는 발 바로 위에 있다'는 계산 전제가 깨집니다. 몸통(어깨→엉덩이) 기울기를 주 지표로 삼고, 다리 한쪽이 곧게 서 있으면 쓰러짐 판정을 거부하는 규칙으로 바꾸는 과정에 참여해 함께 다듬었습니다(공동작업).
+   - 코드: 초기 방식의 한계 [`safety_logic.py#L144-L155`](src/1_vision_pc3/safety_lib/safety_logic.py#L144-L155), 몸통 지표·다리 거부권 [`safety_logic.py#L230-L275`](src/1_vision_pc3/safety_lib/safety_logic.py#L230-L275)
+
+5. **실기 파라미터를 launch에서 yaml로 분리 제안**
+   - 실기에서 도킹 좌표·대기 시간 같은 값을 바꿀 때마다 launch를 고쳐야 해서, 튜닝 값은 yaml로 빼고 namespace는 launch 인자로 받는 구조를 제안했습니다. 팀은 yaml만 고쳐 다시 launch하며 실기 시험에 함께 썼습니다.
+   - 이 분리판은 [실행](#실행) 순서의 현재 경로에는 들어가지 않았습니다([launch · 파라미터 분리](#launch--파라미터-분리)).
+   - 코드: [`amr_aruco_params.yaml`](src/2_ros2_packages/amr_aruco/config/amr_aruco_params.yaml)·[`amr_aruco.launch.py`](src/2_ros2_packages/amr_aruco/launch/amr_aruco.launch.py), [`fleet_params.yaml`](src/fp_amr_fsm/config/fleet_params.yaml)·[`fleet.launch.py`](src/fp_amr_fsm/launch/fleet.launch.py)
+
 ## 목차
 
 _주제별 바로가기입니다. 본문 배치 순서와 다를 수 있습니다._
