@@ -58,6 +58,8 @@ flowchart TB
    - 오프라인 판정 대기 시간(`OFFLINE_TIMEOUT`)은 실기 Wi-Fi에서 정상 순찰 로봇이 오프라인으로 깜빡이는 것을 보고 늘려 잡은 값입니다. 늘린 뒤 다시 측정한 기록은 없습니다.
    - 코드: [`fleet_fsm.py`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py) — 수신 기록 [`mark_alive`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L510-L521), 스택 진단 [`diagnose_stacks`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L940-L976), 오프라인 판정 시간 [`OFFLINE_TIMEOUT`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L320-L327)
 
+   <p align="center"><img src="images/fleet_status_panel.jpg" alt="관제 웹의 로봇 상태 칸: 로봇별 현재 상태와 도킹·주행·위치·마지막 수신 뒤 지난 시간(last_seen)" width="664"><br><sub>관제 웹의 로봇 상태 칸 — 로봇별 현재 상태와 표준 토픽 수신 정보(last_seen 등)</sub></p>
+
 2. **출동 배정과 우선순위 선점**
    - 출동할 수 없는 로봇을 뺀 뒤 사람에게 가장 가까운 로봇을 골라 출동 명령을 보냅니다. 안전모 요청은 바로 움직일 수 있는 대기 로봇을 먼저 고르고, 그중 가까운 로봇을 보냅니다. 우선순위는 응급 > 안전모 > 순찰입니다.
    - 최종 코드에서 순찰 시작은 관제가 로봇을 골라 명령하고, waypoint 이동과 순찰 중단·재개는 로봇 실행부가 맡습니다. 로봇 실행부는 응급·안전모 신호를 받으면 순찰을 끊고 출동하고, 끝나면 끊긴 waypoint부터 순찰을 이어 갑니다.
@@ -399,7 +401,7 @@ export ROS_SUPER_CLIENT=True   # 필수
 | 순서 | 실행 | 위치 | 정상이면 |
 |---|---|---|---|
 | 1 | `ros2 launch turtlebot4_navigation localization.launch.py namespace:=/robotN map:=<final_project.yaml>` | AMR PC | `/robotN/amcl_pose` 수신 |
-| 2 | `ros2 launch turtlebot4_navigation nav2.launch.py namespace:=/robotN` | AMR PC | `planner_server` 노드가 뜸 |
+| 2 | `ros2 launch turtlebot4_navigation nav2.launch.py namespace:=/robotN` | AMR PC | `planner_server`·`smoother_server` 노드가 뜸 |
 | 3 | `ros2 run fp_amr_fsm amr_patrol_emer_helmet --robot robotN` | AMR PC | 도킹 상태로 `patrol_cmd`를 기다림 |
 | 4 | `ros2 run amr_aruco aruco_detect` (기본 namespace `robot2`) | AMR PC | 소화기 점검 경로, 한계 참조 |
 | 5 | rosbridge + `fleet_fsm` + `safety_alert_bridge` + 웹 서빙 + 감지 | 비전 PC | 아래 참조 |
