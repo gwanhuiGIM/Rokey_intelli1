@@ -63,7 +63,7 @@ flowchart TB
 2. **출동 배정과 우선순위 선점**
    - 출동할 수 없는 로봇을 뺀 뒤 사람에게 가장 가까운 로봇을 골라 출동 명령을 보냅니다. 안전모 요청은 바로 움직일 수 있는 대기 로봇을 먼저 고르고, 그중 가까운 로봇을 보냅니다. 우선순위는 응급 > 안전모 > 순찰입니다.
    - 최종 코드에서 순찰 시작은 관제가 로봇을 골라 명령하고, waypoint 이동과 순찰 중단·재개는 로봇 실행부가 맡습니다. 로봇 실행부는 응급·안전모 신호를 받으면 순찰을 끊고 출동하고, 끝나면 끊긴 waypoint부터 순찰을 이어 갑니다.
-   - 출동 종료는 Nav2 액션 상태 전이로 추론합니다. 새 goal이 이전 goal을 취소하는 중(`CANCELING`)을 '이동 끝'으로 읽어 출동 실패로 오판하고 재배정하던 문제를 찾아, `CANCELING`을 이동 중으로 보도록 고쳤습니다.
+   - 출동 종료는 Nav2 액션 상태 전이로 추론합니다. 새 goal이 이전 goal을 취소하는 중(`CANCELING`)을 '이동 끝'으로 읽어 출동 실패로 오판하고 재배정하던 문제를 팀원과 함께 찾아, `CANCELING`을 이동 중으로 보도록 고쳤습니다.
    - 코드: 후보 제외 [`fleet_fsm.py#L1097-L1136`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1097-L1136), 로봇 선정 [`#L1168-L1221`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1168-L1221), 순찰 배정 [`#L1310-L1331`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L1310-L1331), 종료 판정 [`fleet_fsm.py#L565-L576`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/fleet_fsm.py#L565-L576), 순찰 선점 [`amr_patrol_emer_helmet.py#L479-L541`](src/2_ros2_packages/fp_amr_fsm/fp_amr_fsm/amr_patrol_emer_helmet.py#L479-L541)
 
 3. **메시지 전달 정책(QoS)과 오래된 명령 거르기**
