@@ -2,7 +2,7 @@
 
 > 두산로보틱스 ROKEY 부트캠프 팀 프로젝트의 제출 스냅샷을 포트폴리오용으로 공개한 저장소입니다. 코드는 제출 당시 그대로이고, README를 정리했습니다.
 
-> ▶️ **[1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)** — 이 프로젝트를 가장 빨리 파악할 수 있는 자료입니다.
+> ▶️ **[1분 시연 영상](https://youtu.be/-Q8ITIWgUp4)** — 이 프로젝트를 가장 빨리 파악할 수 있는 자료입니다. 사진과 함께 만든 과정·팀에서 일한 방식은 🖼️ [프로젝트 소개 페이지](https://gwanhuigim.github.io/intelli1.html)에 있습니다.
 
 천장 웹캠 2대로 작업자의 **쓰러짐 / 안전모 미착용**을 감지하면, 관제 노드 `fleet_fsm`이 TurtleBot4 AMR 2대(`robot2`·`robot9`) 중 출동 가능한 최근접 로봇을 골라 현장으로 보냅니다.
 평시에는 AMR이 웨이포인트를 순찰합니다. 이 밖에 소화기 ArUco 인식·점검 결과 DB 기록(SQLite + Flask 조회) 모듈과 무단침입 감지 모듈이 들어 있습니다. 각 모듈의 연결 상태는 [한계](#한계--미완성)에 정리했습니다.
@@ -103,8 +103,8 @@ _주제별 바로가기입니다. 본문 배치 순서와 다를 수 있습니�
 | AMR PC | 로봇별 localization, nav2, `amr_patrol_emer_helmet`을 맡습니다 |
 
 PC 배치 문서는 둘입니다.
-- `4_docs/RUN_PC3.md`: PC 한 대로 전부 돌리는 검증용 배치입니다.
-- `4_docs/FOR_AMR_TEAM.md`: 비전 PC와 AMR PC로 나누는 배치입니다.
+- [`4_docs/RUN_PC3.md`](4_docs/RUN_PC3.md): PC 한 대로 전부 돌리는 검증용 배치입니다.
+- [`4_docs/FOR_AMR_TEAM.md`](4_docs/FOR_AMR_TEAM.md): 비전 PC와 AMR PC로 나누는 배치입니다.
 
 **보정**: `src/1_vision_pc3/calibration/`의 `camN_to_map.npz`(호모그래피)·`camN_z_calib.npz`(3×4 P)·`entry_roi.json`은 카메라 위치와 맵(`final_project.yaml`)에 묶여 있습니다. 카메라를 옮기거나 맵을 다시 만들면 `src/3_calibration_tools/`로 다시 만들어야 합니다(번호가 곧 작업 순서).
 
@@ -339,11 +339,11 @@ ros2 launch fp_amr_fsm fleet.launch.py params_file:=/path/to/fleet_params.yaml  
 | 문서 | 내용 | 지위 |
 |---|---|---|
 | [발표 자료(PDF, 58쪽)](https://github.com/gwanhuiGIM/Rokey_intelli1/releases/download/presentation/intelli1_presentation.pdf) | 세부 기술 발표 자료 | 참고 |
-| `src/2_ros2_packages/fp_amr_fsm/README.md` | 관제·실행부 노드 상세 | 정본 패키지 문서 |
-| `src/2_ros2_packages/amr_aruco/README.md` | ArUco 인식·모듈 분리판 실행부, 파라미터 | 정본 패키지 문서 |
-| `src/1_vision_pc3/PC3_ROS_INTERFACE.md` | 비전이 발행하는 토픽 명세 | 정본 |
-| `4_docs/RUN_PC3.md`, `PC4_SETUP.md`, `FOR_AMR_TEAM.md` | PC별 실행 절차 (원래 실행 PC 경로 기준) | 참고 이력 |
-| `src/fp_amr_fsm/README.md` | 리팩터 시도판 설명 (robot2·robot6) | 참고 이력 |
+| [`src/2_ros2_packages/fp_amr_fsm/README.md`](src/2_ros2_packages/fp_amr_fsm/README.md) | 관제·실행부 노드 상세 | 정본 패키지 문서 |
+| [`src/2_ros2_packages/amr_aruco/README.md`](src/2_ros2_packages/amr_aruco/README.md) | ArUco 인식·모듈 분리판 실행부, 파라미터 | 정본 패키지 문서 |
+| [`src/1_vision_pc3/PC3_ROS_INTERFACE.md`](src/1_vision_pc3/PC3_ROS_INTERFACE.md) | 비전이 발행하는 토픽 명세 | 정본 |
+| [`4_docs/RUN_PC3.md`](4_docs/RUN_PC3.md), [`PC4_SETUP.md`](4_docs/PC4_SETUP.md), [`FOR_AMR_TEAM.md`](4_docs/FOR_AMR_TEAM.md) | PC별 실행 절차 (원래 실행 PC 경로 기준) | 참고 이력 |
+| [`src/fp_amr_fsm/README.md`](src/fp_amr_fsm/README.md) | 리팩터 시도판 설명 (robot2·robot6) | 참고 이력 |
 
 ## 설치
 
