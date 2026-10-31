@@ -236,7 +236,7 @@ sequenceDiagram
 
 로봇 상태는 표준 토픽(`battery_state`, `dock_status`, `amcl_pose`)과 노드 그래프로 판단합니다.
 - `OFFLINE` / `NO_LOCALIZATION` / `NO_NAV2`인 로봇은 어떤 출동에서도 빠집니다.
-- `NO_NAV2`는 노드 그래프에 `planner_server`가 있는지로 판단합니다. 그래서 `ROS_SUPER_CLIENT=True`가 필요합니다([실행](#실행)).
+- `NO_NAV2`는 노드 그래프에 `planner_server`와 `smoother_server`가 둘 다 있는지로 판단합니다(하나라도 없으면 `NO_NAV2`). 그래서 `ROS_SUPER_CLIENT=True`가 필요합니다([실행](#실행)).
 
 **실행부** — `src/2_ros2_packages/fp_amr_fsm`의 `amr_patrol_emer_helmet`
 - 로봇마다 1개씩 띄우며, `TurtleBot4Navigator`(Nav2)로 이동합니다.
@@ -394,7 +394,7 @@ export ROS_SUPER_CLIENT=True   # 필수
 
 `ROS_SUPER_CLIENT=True`는 필수입니다.
 - 일반 client는 자기가 구독하는 토픽만 discovery합니다.
-- 그래서 `fleet_fsm`이 살아 있는 `planner_server`를 보지 못해 `NO_NAV2`로 판단하고, 출동을 배정하지 않습니다.
+- 그래서 `fleet_fsm`이 살아 있는 `planner_server`·`smoother_server`를 보지 못해 `NO_NAV2`로 판단하고, 출동을 배정하지 않습니다.
 
 | 순서 | 실행 | 위치 | 정상이면 |
 |---|---|---|---|
